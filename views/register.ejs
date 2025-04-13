@@ -1,0 +1,7 @@
+<h1>Register</h1>
+<form method="POST">
+  <input name="username" required placeholder="Username"><br>
+  <input name="password" type="password" required placeholder="Password"><br>
+  <button>Register</button>
+</form>
+<% if (typeof error !== 'undefined') { %><p><%= error %></p><% } %>

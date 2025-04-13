@@ -1,0 +1,23 @@
+<h1>Panel: <%= form.title %></h1>
+
+<p>Public form: 
+  <input id="link" value="http://localhost:3333/form/<%= form.id %>" readonly>
+  <button onclick="copy()">Copy</button>
+</p>
+
+<script>
+function copy() {
+  const input = document.getElementById('link');
+  input.select();
+  document.execCommand('copy');
+  alert('Copied!');
+}
+</script>
+
+<h3>Responses</h3>
+<% if (!responses.length) { %><p>No responses yet.</p><% } %>
+<ul>
+<% responses.forEach(r => { %>
+  <li><strong><%= r.name %></strong> — <%= r.choice %></li>
+<% }) %>
+</ul>

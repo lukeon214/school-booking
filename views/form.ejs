@@ -1,0 +1,19 @@
+<h1><%= form.title %></h1>
+
+<% if (success) { %><p>Thank you! Response submitted.</p><% } %>
+
+<form method="POST">
+  <% fields.forEach((f, i) => { %>
+    <label><%= f.label %>:</label><br>
+    <% if (f.type === 'text') { %>
+      <input name="field_<%= f.id %>" required><br><br>
+    <% } else if (f.type === 'choice') { 
+      const choices = JSON.parse(f.choices);
+    %>
+      <% choices.forEach(opt => { %>
+        <label><input type="radio" name="field_<%= f.id %>" value="<%= opt %>" required> <%= opt %></label><br>
+      <% }) %><br>
+    <% } %>
+  <% }) %>
+  <button>Send</button>
+</form>

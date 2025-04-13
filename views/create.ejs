@@ -1,0 +1,63 @@
+<h1>Build Your Form</h1>
+
+<form id="builderForm" method="POST" action="/create">
+  <input required name="title" placeholder="Form title"><br><br>
+
+  <div id="fields"></div>
+  <button type="button" onclick="addField()">+ Add Field</button><br><br>
+
+  <input type="hidden" name="fieldsJSON" id="fieldsJSON">
+  <button type="submit">Save Form</button>
+</form>
+
+<script>
+let fieldCounter = 0;
+const fieldsContainer = document.getElementById('fields');
+
+function addField() {
+  const id = `f_${fieldCounter++}`;
+  const div = document.createElement('div');
+  div.className = 'field';
+  div.style = 'border:1px solid #ccc; padding:10px; margin-top:10px';
+
+  div.innerHTML = `
+    <label>Field Label: <input required name="label_${id}" /></label><br>
+    <label>Type:
+      <select name="type_${id}" onchange="toggleChoices(this, '${id}')">
+        <option value="text">Text</option>
+        <option value="choice">Multiple Choice</option>
+      </select>
+    </label><br>
+    <div id="choices_${id}" style="display:none;">
+      <label>Choices (comma separated):<br>
+        <input name="choices_${id}" placeholder="e.g. A,B,C" />
+      </label>
+    </div>
+    <button type="button" onclick="this.parentElement.remove()">🗑 Remove</button>
+    <hr>
+  `;
+  fieldsContainer.appendChild(div);
+}
+
+function toggleChoices(select, id) {
+  const choiceBox = document.getElementById(`choices_${id}`);
+  choiceBox.style.display = (select.value === 'choice') ? 'block' : 'none';
+}
+
+// Builder form submission - pack all fields into JSON
+document.getElementById('builderForm').onsubmit = function () {
+  const fieldDivs = document.querySelectorAll('.field');
+  const result = [];
+
+  fieldDivs.forEach((div, i) => {
+    const label = div.querySelector('[name^=label_]').value.trim();
+    const type = div.querySelector('[name^=type_]').value;
+    const choiceInput = div.querySelector('[name^=choices_]');
+    const choices = type === 'choice' ? choiceInput.value.split(',').map(c => c.trim()) : [];
+
+    result.push({ label, type, choices });
+  });
+
+  document.getElementById('fieldsJSON').value = JSON.stringify(result);
+};
+</script>
