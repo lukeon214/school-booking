@@ -1,8 +1,12 @@
 <h1>Form Panel: <%= form.title %></h1>
 
+<div style="margin-bottom: 1rem">
+  <a href="/dashboard"><button class="secondary">← Back to Dashboard</button></a>
+</div>
+
 <div class="card">
   <strong>Public Form Link:</strong><br>
-  <input id="formLink" readonly value="http://localhost:3000/form/<%= form.id %>">
+  <input id="formLink" readonly value="http://localhost:3333/form/<%= form.id %>">
   <button onclick="copy()">Copy</button>
 </div>
 
@@ -16,20 +20,15 @@ function copy() {
 </script>
 
 <h2>Responses</h2>
-
 <% if (!responses.length) { %>
-  <p>No responses have been submitted yet.</p>
+  <p>No responses submitted yet.</p>
 <% } %>
 
-<% responses.forEach((response, index) => { %>
+<% responses.forEach((submission, index) => { %>
   <div class="card">
-    <% submissions.forEach((submission, index) => { %>
-      <div class="card">
-        <strong><%= submission.email %></strong><br><br>
-        <% submission.fields.forEach(f => { %>
-          <strong><%= f.label %>:</strong> <%= f.value %><br>
-        <% }) %>
-      </div>
+    <strong><%= submission.email %></strong><br><br>
+    <% submission.fields.forEach(f => { %>
+      <strong><%= f.label %>:</strong> <%= f.value %><br>
     <% }) %>
   </div>
 <% }) %>

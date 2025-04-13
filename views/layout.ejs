@@ -6,20 +6,29 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <div class="container">
-    <nav style="margin-bottom: 1rem;">
-      <% if (typeof user !== 'undefined') { %>
-        <a href="/dashboard">Dashboard</a> |
-        <a href="/create">New Form</a> |
-        <a href="/logout">Logout</a>
-      <% } else { %>
-        <a href="/login">Login</a> |
-        <a href="/register">Register</a>
-      <% } %>
-    </nav>
+  <div class="background-pattern"></div>
 
-    <%- body %>
+  <div class="layout">
+    <% if (typeof noSidebar === 'undefined' || !noSidebar) { %>
+      <aside class="sidebar">
+        <h2>📋 Booking</h2>
+    
+        <% if (user) { %>
+          <div class="nav-section">
+            <a href="/dashboard"><button class="nav-btn">Dashboard</button></a>
+            <a href="/create"><button class="nav-btn">Create Form</button></a>
+          </div>
+    
+          <div class="nav-bottom">
+            <a href="/logout"><button class="nav-btn danger">Logout</button></a>
+          </div>
+        <% } %>
+      </aside>
+    <% } %>
 
+    <main class="main">
+      <%- body %>
+    </main>
   </div>
 </body>
 </html>

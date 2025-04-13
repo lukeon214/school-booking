@@ -1,0 +1,21 @@
+<h1>🎉 Thank you for your response!</h1>
+
+<div class="card">
+  <p>Your submission has been recorded successfully.</p>
+
+  <div style="margin-top: 1.5rem">
+    <a href="/form/<%= formId %>">
+      <button>Submit Another Response</button>
+    </a>
+  
+    <% if (userId) { %>
+      <a href="/dashboard">
+        <button class="secondary">Create Your Own Form</button>
+      </a>
+    <% } else { %>
+      <a href="/register">
+        <button class="secondary">Create Your Own Form</button>
+      </a>
+    <% } %>
+  </div>
+</div>

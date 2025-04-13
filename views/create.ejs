@@ -2,6 +2,11 @@
 
 <form id="builderForm" method="POST" action="/create">
   <input required name="title" placeholder="Form Title"><br><br>
+  <label>Who can respond?</label><br>
+    <select name="private">
+      <option value="0" selected>Anyone with the link (Public)</option>
+      <option value="1">Only logged-in users</option>
+    </select><br><br>
 
   <div id="fields"></div>
   <button type="button" onclick="addField()">+ Add Field</button><br><br>

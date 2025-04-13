@@ -1,0 +1,12 @@
+<h1>Welcome to School Booking</h1>
+
+<p>Create and share forms for your class, school, or self.</p>
+
+<br>
+
+<% if (!user) { %>
+  <a href="/login"><button>Login</button></a>
+  <a href="/register"><button class="secondary">Register</button></a>
+<% } else { %>
+  <a href="/dashboard"><button>Go to Dashboard</button></a>
+<% } %>

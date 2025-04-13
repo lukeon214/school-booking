@@ -1,11 +1,36 @@
-<h1>Login</h1>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Login</title>
+  <link rel="stylesheet" href="/style.css" />
+  <style>
+    body {
+      padding: 0rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="background-pattern"></div>
+  <div class="auth-center">
+    <div class="card auth-card">
+      <h2 style="margin-bottom: 1rem;">Login</h2>
 
-<form method="POST">
-  <input name="username" required placeholder="Username"><br>
-  <input name="password" type="password" required placeholder="Password"><br>
-  <button>Login</button>
-</form>
+      <% if (typeof error !== 'undefined') { %>
+        <div class="error"><%= error %></div>
+      <% } %>
 
-<% if (typeof error !== 'undefined') { %>
-  <p style="color: red;"><%= error %></p>
-<% } %>
+      <form method="POST">
+        <input name="username" required placeholder="Username">
+        <input name="password" type="password" required placeholder="Password">
+        <input type="hidden" name="redirectTo" value="<%= redirectTo || '/dashboard' %>">
+        <button>Login</button>
+      </form>
+
+      <p style="margin-top: 1rem;">Don’t have an account?
+        <a href="/register<%= redirectTo ? '?redirect=' + encodeURIComponent(redirectTo) : '' %>">Register</a>
+      </p>
+    </div>
+  </div>
+</body>
+</html>
