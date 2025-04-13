@@ -252,17 +252,26 @@ input[readonly] {
   }
 
   .card {
-    background: white;
-    border: 1px solid #E5E7EB;
+    background: #fff;
+    border: 1px solid #ddd;
     border-radius: 8px;
-    padding: 1.25rem;
-    margin-bottom: 1.25rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    transition: box-shadow 0.2s ease-in-out;
+    margin-bottom: 1rem;
+    padding: 1rem 1.5rem;
+    position: relative;
+    transition: 0.2s box-shadow ease;
+  }
+
+  .card-drag {
+    cursor: grab;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #888;
+    user-select: none;
+    margin-bottom: 0.5rem;
   }
   
   .card:hover {
-    box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
   }
   
   .card input, .card select {
@@ -301,4 +310,58 @@ input[readonly] {
   
   .form-btn.danger:hover {
     background-color: #991B1B;
+  }
+
+  .form-option {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.4rem;
+    gap: 0.5rem;
+  }
+  .form-option input {
+    flex: 1;
+  }
+  
+  .form-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+  }
+  .toggle input[type="checkbox"] {
+    appearance: none;
+    width: 34px;
+    height: 18px;
+    background: #ccc;
+    border-radius: 9px;
+    position: relative;
+    outline: none;
+    cursor: pointer;
+    transition: 0.2s ease;
+  }
+  .toggle input[type="checkbox"]::before {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.2s ease;
+  }
+  .toggle input[type="checkbox"]:checked {
+    background: #4F46E5;
+  }
+  .toggle input[type="checkbox"]:checked::before {
+    transform: translateX(16px);
   }

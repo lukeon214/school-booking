@@ -9,29 +9,38 @@
     <option value="1">Only logged-in users</option>
   </select><br><br>
 
-  <hr><br>
-
   <h3>Fields</h3>
-  <div id="fields-container"></div>
-  <button type="button" class="form-btn" onclick="addField()">+ Add Field</button>
+  <div id="fields-container" class="field-sortable"></div>
 
+  <button type="button" class="form-btn" onclick="addField()">➕ Add Field</button>
   <br><br>
+
   <input type="hidden" name="fieldsJSON" id="fieldsJSON">
-  <button type="submit" class="form-btn primary">✅ Publish Form</button>
+  <button type="submit" class="form-btn primary">✅ Create Form</button>
 </form>
+
+<!-- 🔥 SortableJS for drag and drop -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
 <script>
   let fields = [];
 
   function addField() {
-    const index = fields.length;
-    const field = {
+    fields.push({
       label: '',
       type: 'text',
+      description: '',
+      placeholder: '',
       choices: [],
+      required: false,
       maxResponses: null
-    };
-    fields.push(field);
+    });
+    renderFields();
+  }
+
+  function duplicateField(i) {
+    const copy = JSON.parse(JSON.stringify(fields[i]));
+    fields.splice(i + 1, 0, copy);
     renderFields();
   }
 
@@ -47,46 +56,108 @@
     fields.forEach((field, i) => {
       const wrapper = document.createElement('div');
       wrapper.className = 'card';
+      wrapper.setAttribute('data-id', i);
 
       wrapper.innerHTML = `
-        <label>Label</label>
-        <input type="text" value="${field.label || ''}" oninput="fields[${i}].label = this.value">
+        <div class="card-drag">☰ Drag</div>
 
-        <label>Type</label>
-        <select onchange="updateType(${i}, this.value)">
-          <option value="text" ${field.type === 'text' ? 'selected' : ''}>Text</option>
-          <option value="dropdown" ${field.type === 'dropdown' ? 'selected' : ''}>Dropdown</option>
-          <option value="choice" ${field.type === 'choice' ? 'selected' : ''}>Choice (Radio)</option>
-        </select>
+        <input type="text" placeholder="Enter your question..." value="${field.label}" 
+          oninput="fields[${i}].label = this.value" style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem; width: 100%;">
 
-        <div id="choices-${i}" style="display: ${field.type === 'dropdown' || field.type === 'choice' ? 'block' : 'none'}">
-          <label>Choices (comma-separated)</label>
-          <input type="text" value="${field.choices ? field.choices.join(', ') : ''}" oninput="updateChoices(${i}, this.value)">
+        ${['radio', 'checkbox'].includes(field.type) ? `
+          <div id="choices-list-${i}">
+            ${field.choices.map((opt, j) => `
+              <div class="form-option">
+                ${field.type === 'radio' ? '<input type="radio" disabled>' : '<input type="checkbox" disabled>'}
+                <input type="text" value="${opt}" 
+                  oninput="fields[${i}].choices[${j}] = this.value">
+                <button onclick="removeChoice(${i}, ${j})">🗑</button>
+              </div>
+            `).join('')}
+          </div>
+          <button type="button" onclick="addChoice(${i})">➕ Add Option</button>
+          <button type="button" onclick="addOther(${i})">➕ Add 'Other'</button>
+        ` : field.type === 'textarea' ? `
+          <textarea disabled placeholder="Long answer preview..." style="width:100%; margin-top: 0.5rem;"></textarea>
+        ` : field.type === 'date' ? `
+          <input type="date" disabled style="width:100%; margin-top: 0.5rem;">
+        ` : field.type === 'number' ? `
+          <input type="number" disabled placeholder="Number input preview..." style="width:100%; margin-top: 0.5rem;">
+        ` : `
+          <input type="text" disabled placeholder="Short answer preview..." style="width:100%; margin-top: 0.5rem;">
+        `}
+
+        <div class="form-footer">
+          <div class="toggle">
+            <label>Required</label>
+            <input type="checkbox" ${field.required ? 'checked' : ''} 
+              onchange="fields[${i}].required = this.checked">
+          </div>
+
+          ${field.type === 'textarea' ? `
+            <div class="toggle">
+              <label>Long Answer</label>
+              <input type="checkbox" checked disabled>
+            </div>` : ''}
+
+          ${field.type === 'checkbox' ? `
+            <div class="toggle">
+              <label>Multiple Answers</label>
+              <input type="checkbox" checked disabled>
+            </div>` : ''}
+          
+          <div>
+            <button type="button" onclick="duplicateField(${i})">📄</button>
+            <button type="button" class="form-btn danger" onclick="removeField(${i})">🗑</button>
+          </div>
         </div>
-
-        <label>Max Responses (optional)</label>
-        <input type="number" min="0" value="${field.maxResponses || ''}" oninput="fields[${i}].maxResponses = parseInt(this.value) || null">
-
-        <br>
-        <button type="button" onclick="removeField(${i})">🗑 Remove Field</button>
       `;
 
       container.appendChild(wrapper);
     });
+
+    Sortable.create(container, {
+      animation: 150,
+      handle: '.card-drag',
+      onEnd: e => {
+        const item = fields.splice(e.oldIndex, 1)[0];
+        fields.splice(e.newIndex, 0, item);
+        renderFields();
+      }
+    });
   }
 
-  function updateChoices(i, text) {
-    fields[i].choices = text.split(',').map(x => x.trim()).filter(Boolean);
-  }
-
-  function updateType(i, value) {
-    fields[i].type = value;
-    if (value === 'text') fields[i].choices = [];
+  function updateType(i, val) {
+    fields[i].type = val;
+    if (!['radio', 'checkbox'].includes(val)) fields[i].choices = [];
     renderFields();
+  }
+
+  function updateChoices(i, string) {
+    fields[i].choices = string.split(',').map(x => x.trim()).filter(Boolean);
   }
 
   function handleSubmit() {
     document.getElementById('fieldsJSON').value = JSON.stringify(fields);
     return true;
+  }
+
+  function addChoice(i) {
+  fields[i].choices = fields[i].choices || [];
+  fields[i].choices.push(`Option ${fields[i].choices.length + 1}`);
+  renderFields();
+  }
+
+  function addOther(i) {
+    fields[i].choices = fields[i].choices || [];
+    if (!fields[i].choices.includes("Other")) {
+      fields[i].choices.push("Other");
+      renderFields();
+    }
+  }
+
+  function removeChoice(i, j) {
+    fields[i].choices.splice(j, 1);
+    renderFields();
   }
 </script>
