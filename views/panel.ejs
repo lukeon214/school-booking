@@ -4,6 +4,7 @@
   <strong>Public Form Link:</strong><br>
   <input id="formLink" readonly value="http://localhost:3333/form/<%= form.id %>">
   <button onclick="copy()">Copy</button>
+  <a href="/export/<%= form.id %>" class="form-btn">⬇ Export CSV</a>
 </div>
 
 <script>

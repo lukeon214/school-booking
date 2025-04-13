@@ -295,4 +295,41 @@ app.get('/panel/:id', requireLogin, async (req, res) => {
   res.render('panel', { form, responses });
 });
 
+app.get('/export/:id', requireLogin, async (req, res) => {
+  const form = await db.get('SELECT * FROM forms WHERE id = ? AND user_id = ?', [req.params.id, req.session.userId]);
+  if (!form) return res.status(403).send('Forbidden');
+
+  const raw = await db.all(`
+    SELECT a.submission_id, a.user_id, f.label, a.value, u.email
+    FROM answers a
+    JOIN fields f ON f.id = a.field_id
+    LEFT JOIN users u ON u.id = a.user_id
+    WHERE a.form_id = ?
+    ORDER BY a.id ASC
+  `, [req.params.id]);
+
+  const rowsBySubmission = {};
+  for (const r of raw) {
+    if (!rowsBySubmission[r.submission_id]) {
+      rowsBySubmission[r.submission_id] = { email: r.email || 'Anonymous' };
+    }
+    rowsBySubmission[r.submission_id][r.label] = r.value;
+  }
+
+  const rows = Object.values(rowsBySubmission);
+
+  if (rows.length === 0) return res.status(400).send('No submissions to export.');
+
+  const fields = Object.keys(rows[0]);
+
+  const csv = [
+    fields.join(','),
+    ...rows.map(r => fields.map(f => `"${(r[f] || '').replace(/"/g, '""')}"`).join(','))
+  ].join('\n');
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="form_${form.id}_responses.csv"`);
+  res.send(csv);
+});
+
 app.listen(PORT, () => console.log(`http://localhost:${PORT}`));
