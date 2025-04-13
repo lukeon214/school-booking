@@ -246,3 +246,59 @@ input[readonly] {
     z-index: 1;
     position: relative;
   }
+
+  .advanced {
+    margin: 0.5rem 0;
+  }
+
+  .card {
+    background: white;
+    border: 1px solid #E5E7EB;
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    transition: box-shadow 0.2s ease-in-out;
+  }
+  
+  .card:hover {
+    box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+  }
+  
+  .card input, .card select {
+    margin-bottom: 0.75rem;
+  }
+
+  .form-btn {
+    display: inline-block;
+    max-width: 250px;
+    padding: 0.6rem 1.2rem;
+    font-size: 1rem;
+    background-color: #4F46E5;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 0.75rem;
+  }
+  
+  .form-btn:hover {
+    background-color: #4338CA;
+  }
+  
+  .form-btn.primary {
+    background-color: #16A34A;
+  }
+  
+  .form-btn.primary:hover {
+    background-color: #15803D;
+  }
+  
+  .form-btn.danger {
+    background-color: #DC2626;
+  }
+  
+  .form-btn.danger:hover {
+    background-color: #991B1B;
+  }

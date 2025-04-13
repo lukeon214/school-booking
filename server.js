@@ -209,7 +209,8 @@ app.get('/form/:id', async (req, res) => {
   res.render('form', {
     form,
     fields,
-    success: req.query.success
+    success: req.query.success,
+    layout: false
   });
 });
 

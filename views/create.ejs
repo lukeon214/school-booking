@@ -1,72 +1,92 @@
-<h1>Create a Form</h1>
+<h1>Create a New Form</h1>
 
-<form id="builderForm" method="POST" action="/create">
-  <input required name="title" placeholder="Form Title"><br><br>
-  <label>Who can respond?</label><br>
-    <select name="private">
-      <option value="0" selected>Anyone with the link (Public)</option>
-      <option value="1">Only logged-in users</option>
-    </select><br><br>
+<form method="POST" action="/create" onsubmit="return handleSubmit()">
+  <input name="title" placeholder="Form Title" required><br><br>
 
-  <div id="fields"></div>
-  <button type="button" onclick="addField()">+ Add Field</button><br><br>
+  <label>Who can fill this form?</label><br>
+  <select name="private">
+    <option value="0">Anyone (Public)</option>
+    <option value="1">Only logged-in users</option>
+  </select><br><br>
 
+  <hr><br>
+
+  <h3>Fields</h3>
+  <div id="fields-container"></div>
+  <button type="button" class="form-btn" onclick="addField()">+ Add Field</button>
+
+  <br><br>
   <input type="hidden" name="fieldsJSON" id="fieldsJSON">
-  <button type="submit">Save Form</button>
+  <button type="submit" class="form-btn primary">✅ Publish Form</button>
 </form>
 
 <script>
-let fieldCounter = 0;
-const fieldsContainer = document.getElementById('fields');
+  let fields = [];
 
-function addField() {
-  const id = `f_${fieldCounter++}`;
-  const div = document.createElement('div');
-  div.className = 'field';
-  div.style = 'border:1px solid #ccc; padding:10px; margin-top:10px';
+  function addField() {
+    const index = fields.length;
+    const field = {
+      label: '',
+      type: 'text',
+      choices: [],
+      maxResponses: null
+    };
+    fields.push(field);
+    renderFields();
+  }
 
-  div.innerHTML = `
-    <label>Label: <input required name="label_${id}"></label><br>
-    <label>Type:
-      <select name="type_${id}" onchange="toggleChoices(this, '${id}')">
-        <option value="text">Text</option>
-        <option value="textarea">Textarea</option>
-        <option value="number">Number</option>
-        <option value="choice">Choice</option>
-        <option value="checkbox">Checkboxes</option>
-        <option value="dropdown">Dropdown</option>
-      </select>
-    </label><br>
-    <label>Max Responses (optional): <input name="max_${id}" type="number" min="1"></label><br>
-    <div id="choices_${id}" style="display:none;">
-      <label>Choices (comma separated):<br>
-        <input name="choices_${id}">
-      </label>
-    </div>
-    <button type="button" onclick="this.parentElement.remove()">🗑 Remove</button>
-    <hr>
-  `;
-  fieldsContainer.appendChild(div);
-}
+  function removeField(i) {
+    fields.splice(i, 1);
+    renderFields();
+  }
 
-function toggleChoices(select, id) {
-  const box = document.getElementById(`choices_${id}`);
-  box.style.display = ["choice", "checkbox", "dropdown"].includes(select.value) ? 'block' : 'none';
-}
+  function renderFields() {
+    const container = document.getElementById('fields-container');
+    container.innerHTML = '';
 
-document.getElementById('builderForm').onsubmit = function () {
-  const result = [];
-  document.querySelectorAll('.field').forEach(div => {
-    const label = div.querySelector('[name^=label_]').value.trim();
-    const type = div.querySelector('[name^=type_]').value;
-    const choiceInput = div.querySelector('[name^=choices_]');
-    const limitInput = div.querySelector('[name^=max_]');
-    const maxResponses = limitInput.value ? parseInt(limitInput.value) : null;
-    const choices = (["choice", "checkbox", "dropdown"].includes(type)) ?
-      choiceInput.value.split(',').map(x => x.trim()) : [];
+    fields.forEach((field, i) => {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'card';
 
-    result.push({ label, type, choices, maxResponses });
-  });
-  document.getElementById('fieldsJSON').value = JSON.stringify(result);
-};
+      wrapper.innerHTML = `
+        <label>Label</label>
+        <input type="text" value="${field.label || ''}" oninput="fields[${i}].label = this.value">
+
+        <label>Type</label>
+        <select onchange="updateType(${i}, this.value)">
+          <option value="text" ${field.type === 'text' ? 'selected' : ''}>Text</option>
+          <option value="dropdown" ${field.type === 'dropdown' ? 'selected' : ''}>Dropdown</option>
+          <option value="choice" ${field.type === 'choice' ? 'selected' : ''}>Choice (Radio)</option>
+        </select>
+
+        <div id="choices-${i}" style="display: ${field.type === 'dropdown' || field.type === 'choice' ? 'block' : 'none'}">
+          <label>Choices (comma-separated)</label>
+          <input type="text" value="${field.choices ? field.choices.join(', ') : ''}" oninput="updateChoices(${i}, this.value)">
+        </div>
+
+        <label>Max Responses (optional)</label>
+        <input type="number" min="0" value="${field.maxResponses || ''}" oninput="fields[${i}].maxResponses = parseInt(this.value) || null">
+
+        <br>
+        <button type="button" onclick="removeField(${i})">🗑 Remove Field</button>
+      `;
+
+      container.appendChild(wrapper);
+    });
+  }
+
+  function updateChoices(i, text) {
+    fields[i].choices = text.split(',').map(x => x.trim()).filter(Boolean);
+  }
+
+  function updateType(i, value) {
+    fields[i].type = value;
+    if (value === 'text') fields[i].choices = [];
+    renderFields();
+  }
+
+  function handleSubmit() {
+    document.getElementById('fieldsJSON').value = JSON.stringify(fields);
+    return true;
+  }
 </script>

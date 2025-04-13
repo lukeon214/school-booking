@@ -1,3 +1,8 @@
+<head>
+  <meta charset="utf-8" />
+  <title>Register</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
 <h1><%= form.title %></h1>
 <% if (success) { %><p>✅ Thanks! Submitted.</p><% } %>
 
@@ -30,5 +35,5 @@
       </select><br><br>
     <% } %>
   <% }) %>
-  <button>Submit</button>
+  <button type="submit" class="form-btn primary">Submit</button>
 </form>
