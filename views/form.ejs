@@ -1,39 +1,60 @@
 <head>
-  <meta charset="utf-8" />
-  <title>Register</title>
-  <link rel="stylesheet" href="/style.css" />
+  <meta charset="UTF-8">
+  <title><%= form.title %></title>
+  <link rel="stylesheet" href="/form-style.css">
 </head>
-<h1><%= form.title %></h1>
-<% if (success) { %><p>✅ Thanks! Submitted.</p><% } %>
+<body>
 
-<form method="POST">
-  <% fields.forEach(f => {
-    const full = f.max_responses && f.usage >= f.max_responses;
-  %>
-    <label><%= f.label %>:</label><br>
-    <% if (full) { %>
-      <p><em>FULL</em></p><br>
-    <% } else if (f.type === 'text') { %>
-      <input required name="field_<%= f.id %>"><br><br>
-    <% } else if (f.type === 'textarea') { %>
-      <textarea required name="field_<%= f.id %>"></textarea><br><br>
-    <% } else if (f.type === 'number') { %>
-      <input type="number" required name="field_<%= f.id %>"><br><br>
-    <% } else if (f.type === 'choice') {
-      JSON.parse(f.choices).forEach(opt => { %>
-        <label><input required type="radio" name="field_<%= f.id %>" value="<%= opt %>"> <%= opt %></label><br>
-      <% }) %><br>
-    <% } else if (f.type === 'checkbox') {
-      JSON.parse(f.choices).forEach(opt => { %>
-        <label><input type="checkbox" name="field_<%= f.id %>[]" value="<%= opt %>"> <%= opt %></label><br>
-      <% }) %><br>
-    <% } else if (f.type === 'dropdown') { %>
-      <select required name="field_<%= f.id %>">
-        <% JSON.parse(f.choices).forEach(opt => { %>
-          <option value="<%= opt %>"><%= opt %></option>
-        <% }) %>
-      </select><br><br>
-    <% } %>
-  <% }) %>
-  <button type="submit" class="form-btn primary">Submit</button>
-</form>
+<main>
+  <h1 style="text-align:center; margin-bottom: 2rem;"><%= form.title %></h1>
+
+  <% if (success) { %>
+    <p style="text-align: center;">✅ Thanks! Submitted.</p>
+  <% } else { %>
+  
+  <form method="POST" class="form-page">
+    <% fields.forEach(f => {
+      const full = f.max_responses && f.usage >= f.max_responses;
+      const options = f.choices ? JSON.parse(f.choices) : [];
+    %>
+      <label><%= f.label %>:</label>
+
+      <% if (full) { %>
+        <p><em>This question is full.</em></p>
+      <% } else if (f.type === 'text') { %>
+        <input type="text" name="field_<%= f.id %>" <%= f.required ? 'required' : '' %>>
+      <% } else if (f.type === 'textarea') { %>
+        <textarea name="field_<%= f.id %>" <%= f.required ? 'required' : '' %>></textarea>
+      <% } else if (f.type === 'number') { %>
+        <input type="number" name="field_<%= f.id %>" <%= f.required ? 'required' : '' %>>
+      <% } else if (f.type === 'radio') { %>
+        <div class="field-group">
+          <% options.forEach(opt => { %>
+            <label>
+              <input type="radio" name="field_<%= f.id %>" value="<%= opt %>" <%= f.required ? 'required' : '' %>>
+              <%= opt %>
+            </label>
+          <% }) %>
+        </div>
+      <% } else if (f.type === 'checkbox') { %>
+        <div class="field-group">
+          <% options.forEach(opt => { %>
+            <label>
+              <input type="checkbox" name="field_<%= f.id %>[]" value="<%= opt %>">
+              <%= opt %>
+            </label>
+          <% }) %>
+        </div>
+      <% } else if (f.type === 'dropdown') { %>
+        <select name="field_<%= f.id %>" <%= f.required ? 'required' : '' %>>
+          <% options.forEach(opt => { %>
+            <option value="<%= opt %>"><%= opt %></option>
+          <% }); %>
+        </select>
+      <% } %>
+    <% }) %>
+    
+    <button type="submit">Submit</button>
+  </form>
+  <% } %>
+</main>

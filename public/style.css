@@ -34,34 +34,37 @@ nav a {
 }
 
 /* Form Controls */
-input, select, textarea, button {
-  font-size: 1rem;
-  padding: 0.5rem;
-  margin: 8px 0;
-  border: 1px solid #D1D5DB;
-  border-radius: 6px;
-  width: 100%;
-  box-sizing: border-box;
-}
+input, select, textarea {
+    font-size: 1rem;
+    padding: 0.5rem;
+    margin: 8px 0;
+    border: 1px solid #D1D5DB;
+    border-radius: 6px;
+    width: 100%;
+    box-sizing: border-box;
+  }
 
 textarea {
   min-height: 80px;
 }
 
 button {
-  background: #4F46E5;
-  color: white;
-  border: none;
-  cursor: pointer;
-  margin-top: 10px;
-  padding: 0.6rem 1.4rem;
-  border-radius: 6px;
-  font-weight: 500;
-}
+    font-size: 1rem;
+    padding: 0.5rem 1rem;
+    margin: 8px 4px 8px 0;
+    border: 1px solid #D1D5DB;
+    border-radius: 6px;
+    background-color: #4F46E5;
+    color: white;
+    cursor: pointer;
+    width: auto;
+    box-sizing: border-box;
+    transition: 0.2s ease;
+  }
 
-button:hover {
-  background: #4338CA;
-}
+  button:hover {
+    background-color: #4338CA;
+  }
 
 button.secondary {
   background: #6B7280;
@@ -141,6 +144,7 @@ input[readonly] {
     flex-direction: column;
     justify-content: space-between;
     border-radius: 6px;
+    margin-bottom: 4rem;
   }
   
   .main {
@@ -158,10 +162,10 @@ input[readonly] {
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: url('/pattern.svg');
+    background-image: url('/test.svg');
     background-size: cover;
     background-repeat: no-repeat;
-    opacity: 0.07;
+    opacity: 0.25;
     z-index: 0;
   }
 
@@ -227,7 +231,7 @@ input[readonly] {
     align-items: center;
     min-height: 100vh;
     padding: 2rem;
-    background-image: url('/pattern.svg');
+    background-image: url('/test.svg');
     background-size: cover;
     background-repeat: no-repeat;
     background-position: center;
@@ -364,4 +368,66 @@ input[readonly] {
   }
   .toggle input[type="checkbox"]:checked::before {
     transform: translateX(16px);
+  }
+
+  form {
+    max-width: 600px;
+    margin: 0 auto 2rem auto;
+    padding: 1rem 2rem;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0px 6px 24px rgba(0, 0, 0, 0.05);
+  }
+  
+  /* === Question Labels === */
+  form label {
+    display: block;
+    font-weight: 600;
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+    color: #111;
+  }
+  
+  /* === Radio/Checkbox Group Styling === */
+  .field-group {
+    margin-left: 1rem;
+  }
+  
+  .field-group label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 400;
+    margin-bottom: 0.5rem;
+  }
+  
+  /* === Inputs & Textareas === */
+  input[type="text"],
+  input[type="number"],
+  textarea,
+  select {
+    width: 100%;
+    max-width: 100%;
+    font-size: 1rem;
+    padding: 0.6rem;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    box-sizing: border-box;
+  }
+  
+  /* === Submit Button === */
+  form button {
+    margin-top: 2rem;
+    padding: 0.7rem 1.4rem;
+    font-size: 1rem;
+    border: none;
+    border-radius: 6px;
+    background: #4F46E5;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  form button:hover {
+    background: #4338CA;
   }

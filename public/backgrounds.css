@@ -1,0 +1,27 @@
+.background-container {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+  }
+  
+  .background {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    opacity: 0;
+    transition: opacity 0.6s ease-in-out;
+  }
+  
+  .bg-login {
+    background-image: url('/test.svg');
+  }
+  
+  .bg-dashboard {
+    background-image: url('/test.svg');
+  }
+  
+  .background.show {
+    opacity: 1;
+  }

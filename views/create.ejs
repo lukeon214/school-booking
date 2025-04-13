@@ -1,7 +1,7 @@
 <h1>Create a New Form</h1>
 
 <form method="POST" action="/create" onsubmit="return handleSubmit()">
-  <input name="title" placeholder="Form Title" required><br><br>
+  <input name="title" placeholder="Form Title" required style="font-size: 1.2rem; padding: 0.6rem; width: 100%; margin-bottom: 1.5rem;">
 
   <label>Who can fill this form?</label><br>
   <select name="private">
@@ -11,15 +11,13 @@
 
   <h3>Fields</h3>
   <div id="fields-container" class="field-sortable"></div>
-
-  <button type="button" class="form-btn" onclick="addField()">➕ Add Field</button>
+  <button type="button" onclick="addField()">➕ Add Field</button>
   <br><br>
 
   <input type="hidden" name="fieldsJSON" id="fieldsJSON">
-  <button type="submit" class="form-btn primary">✅ Create Form</button>
+  <button type="submit">✅ Create Form</button>
 </form>
 
-<!-- 🔥 SortableJS for drag and drop -->
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
 <script>
@@ -29,18 +27,35 @@
     fields.push({
       label: '',
       type: 'text',
-      description: '',
-      placeholder: '',
-      choices: [],
-      required: false,
-      maxResponses: null
+      required: false
     });
     renderFields();
   }
 
+  function updateType(i, val) {
+    fields[i].type = val;
+    if (['radio', 'checkbox', 'dropdown'].includes(val)) {
+      fields[i].choices = fields[i].choices || ['Option 1', 'Option 2'];
+    } else {
+      delete fields[i].choices;
+    }
+    renderFields();
+  }
+
+  function addChoice(i) {
+    fields[i].choices = fields[i].choices || [];
+    fields[i].choices.push('');
+    renderFields();
+  }
+
+  function removeChoice(i, j) {
+    fields[i].choices.splice(j, 1);
+    renderFields();
+  }
+
   function duplicateField(i) {
-    const copy = JSON.parse(JSON.stringify(fields[i]));
-    fields.splice(i + 1, 0, copy);
+    const clone = JSON.parse(JSON.stringify(fields[i]));
+    fields.splice(i + 1, 0, clone);
     renderFields();
   }
 
@@ -49,115 +64,84 @@
     renderFields();
   }
 
-  function renderFields() {
-    const container = document.getElementById('fields-container');
-    container.innerHTML = '';
-
-    fields.forEach((field, i) => {
-      const wrapper = document.createElement('div');
-      wrapper.className = 'card';
-      wrapper.setAttribute('data-id', i);
-
-      wrapper.innerHTML = `
-        <div class="card-drag">☰ Drag</div>
-
-        <input type="text" placeholder="Enter your question..." value="${field.label}" 
-          oninput="fields[${i}].label = this.value" style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem; width: 100%;">
-
-        ${['radio', 'checkbox'].includes(field.type) ? `
-          <div id="choices-list-${i}">
-            ${field.choices.map((opt, j) => `
-              <div class="form-option">
-                ${field.type === 'radio' ? '<input type="radio" disabled>' : '<input type="checkbox" disabled>'}
-                <input type="text" value="${opt}" 
-                  oninput="fields[${i}].choices[${j}] = this.value">
-                <button onclick="removeChoice(${i}, ${j})">🗑</button>
-              </div>
-            `).join('')}
-          </div>
-          <button type="button" onclick="addChoice(${i})">➕ Add Option</button>
-          <button type="button" onclick="addOther(${i})">➕ Add 'Other'</button>
-        ` : field.type === 'textarea' ? `
-          <textarea disabled placeholder="Long answer preview..." style="width:100%; margin-top: 0.5rem;"></textarea>
-        ` : field.type === 'date' ? `
-          <input type="date" disabled style="width:100%; margin-top: 0.5rem;">
-        ` : field.type === 'number' ? `
-          <input type="number" disabled placeholder="Number input preview..." style="width:100%; margin-top: 0.5rem;">
-        ` : `
-          <input type="text" disabled placeholder="Short answer preview..." style="width:100%; margin-top: 0.5rem;">
-        `}
-
-        <div class="form-footer">
-          <div class="toggle">
-            <label>Required</label>
-            <input type="checkbox" ${field.required ? 'checked' : ''} 
-              onchange="fields[${i}].required = this.checked">
-          </div>
-
-          ${field.type === 'textarea' ? `
-            <div class="toggle">
-              <label>Long Answer</label>
-              <input type="checkbox" checked disabled>
-            </div>` : ''}
-
-          ${field.type === 'checkbox' ? `
-            <div class="toggle">
-              <label>Multiple Answers</label>
-              <input type="checkbox" checked disabled>
-            </div>` : ''}
-          
-          <div>
-            <button type="button" onclick="duplicateField(${i})">📄</button>
-            <button type="button" class="form-btn danger" onclick="removeField(${i})">🗑</button>
-          </div>
-        </div>
-      `;
-
-      container.appendChild(wrapper);
-    });
-
-    Sortable.create(container, {
-      animation: 150,
-      handle: '.card-drag',
-      onEnd: e => {
-        const item = fields.splice(e.oldIndex, 1)[0];
-        fields.splice(e.newIndex, 0, item);
-        renderFields();
-      }
-    });
-  }
-
-  function updateType(i, val) {
-    fields[i].type = val;
-    if (!['radio', 'checkbox'].includes(val)) fields[i].choices = [];
-    renderFields();
-  }
-
-  function updateChoices(i, string) {
-    fields[i].choices = string.split(',').map(x => x.trim()).filter(Boolean);
-  }
-
   function handleSubmit() {
     document.getElementById('fieldsJSON').value = JSON.stringify(fields);
     return true;
   }
 
-  function addChoice(i) {
-  fields[i].choices = fields[i].choices || [];
-  fields[i].choices.push(`Option ${fields[i].choices.length + 1}`);
-  renderFields();
-  }
+  function renderFields() {
+      const container = document.getElementById('fields-container');
+      container.innerHTML = '';
 
-  function addOther(i) {
-    fields[i].choices = fields[i].choices || [];
-    if (!fields[i].choices.includes("Other")) {
-      fields[i].choices.push("Other");
-      renderFields();
+      fields.forEach((field, i) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'card';
+        wrapper.innerHTML = `
+          <div class="card-drag">☰ Drag</div>
+
+          <input type="text" placeholder="Question" value="${field.label || ''}"
+            oninput="fields[${i}].label = this.value"
+            style="width: 100%; font-weight: 600; margin-bottom: 0.75rem;" />
+
+          <select onchange="updateType(${i}, this.value)">
+            <option value="text" ${field.type === 'text' ? 'selected' : ''}>Short Answer</option>
+            <option value="textarea" ${field.type === 'textarea' ? 'selected' : ''}>Long Answer</option>
+            <option value="radio" ${field.type === 'radio' ? 'selected' : ''}>Multiple Choice</option>
+            <option value="checkbox" ${field.type === 'checkbox' ? 'selected' : ''}>Checkboxes</option>
+            <option value="dropdown" ${field.type === 'dropdown' ? 'selected' : ''}>Dropdown</option>
+            <option value="number" ${field.type === 'number' ? 'selected' : ''}>Number</option>
+          </select>
+
+          ${['radio', 'checkbox', 'dropdown'].includes(field.type) ? `
+            <div id="choices-list-${i}">
+              ${(field.choices || []).map((opt, j) => `
+                <div class="form-option">
+                  ${field.type === 'radio' ? '<input type="radio" disabled>' : '<input type="checkbox" disabled>'}
+                  <input type="text" value="${opt}" placeholder="Option ${j + 1}" 
+                    oninput="fields[${i}].choices[${j}] = this.value" />
+                  <button type="button" onclick="removeChoice(${i}, ${j})" class="form-btn danger">🗑</button>
+                </div>`).join('')}
+            </div>
+            <button type="button" onclick="addChoice(${i})" class="form-btn">➕ Add Option</button>
+          ` : ''}
+
+          <div class="form-footer">
+            <div class="toggle">
+              <label>Required</label>
+              <input type="checkbox" ${field.required ? 'checked' : ''} onchange="fields[${i}].required = this.checked">
+            </div>
+
+            ${field.type === 'checkbox' ? `
+              <div class="toggle">
+                <label>Multiple answers</label>
+                <input type="checkbox" checked disabled>
+              </div>
+            ` : ''}
+
+            <div>
+              <button type="button" onclick="duplicateField(${i})" class="form-btn">📄</button>
+              <button type="button" onclick="removeField(${i})" class="form-btn danger">🗑</button>
+            </div>
+            <div class="toggle">
+              <label>Max responses</label>
+              <input type="number" min="0" value="${field.maxResponses || ''}" 
+                    oninput="fields[${i}].maxResponses = this.value ? parseInt(this.value) : null" />
+            </div>
+          </div>
+        `;
+        container.appendChild(wrapper);
+      });
+
+      if (!window.sortableInstance) {
+        window.sortableInstance = Sortable.create(container, {
+          animation: 150,
+          handle: '.card-drag',
+          onEnd: e => {
+            const item = fields.splice(e.oldIndex, 1)[0];
+            fields.splice(e.newIndex, 0, item);
+            renderFields();
+          }
+        });
+      }
     }
-  }
-
-  function removeChoice(i, j) {
-    fields[i].choices.splice(j, 1);
-    renderFields();
-  }
 </script>

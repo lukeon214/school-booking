@@ -1,7 +1,11 @@
+<head>
+  <link rel="stylesheet" href="/backgrounds.css">
+</head>
 <h1>Your Forms</h1>
 
 <% if (!forms.length) { %>
-  <p>You haven't created any forms yet.<a href="/create"><button>Create New Form</button></a></p>
+  <p>You haven't created any forms yet.</p><br>
+  <a href="/create"><button>Create New Form</button></a><br>
 <% } %>
 
 <% forms.forEach(f => { %>
