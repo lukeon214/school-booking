@@ -1,30 +1,25 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
   <title>Forms</title>
-  <style>
-    body { font-family: sans-serif; padding: 2rem; }
-    nav { margin-bottom: 1rem; }
-    .card {
-      border: 1px solid #ccc;
-      padding: 12px;
-      margin: 8px 0;
-      border-radius: 5px;
-    }
-    .card:hover { background: #f9f9f9; }
-  </style>
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <nav>
-    <% if (typeof user !== 'undefined') { %>
-      <a href="/dashboard">Dashboard</a> |
-      <a href="/create">Create Form</a> |
-      <a href="/logout">Logout</a>
-    <% } else { %>
-      <a href="/login">Login</a> |
-      <a href="/register">Register</a>
-    <% } %>
-  </nav>
-  <%- body %>
+  <div class="container">
+    <nav style="margin-bottom: 1rem;">
+      <% if (typeof user !== 'undefined') { %>
+        <a href="/dashboard">Dashboard</a> |
+        <a href="/create">New Form</a> |
+        <a href="/logout">Logout</a>
+      <% } else { %>
+        <a href="/login">Login</a> |
+        <a href="/register">Register</a>
+      <% } %>
+    </nav>
+
+    <%- body %>
+
+  </div>
 </body>
 </html>

@@ -1,0 +1,71 @@
+body {
+    margin: 0;
+    padding: 2rem;
+    font-family: 'Segoe UI', sans-serif;
+    background: #F9FAFB;
+    color: #111827;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+h1, h2 {
+    color: #4F46E5;
+}
+
+input, select, textarea, button {
+    font-size: 1rem;
+    padding: 0.5rem;
+    margin: 4px 0;
+    border: 1px solid #E5E7EB;
+    border-radius: 4px;
+    width: 100%;
+}
+
+button {
+    background: #4F46E5;
+    color: white;
+    border: none;
+    cursor: pointer;
+    margin-top: 0.5rem;
+}
+
+button:hover {
+    background: #3730A3;
+}
+
+button.danger {
+    background: #E11D48;
+}
+
+button.danger:hover {
+    background: #991B1B;
+}
+
+.card {
+    background: #fff;
+    border: 1px solid #E5E7EB;
+    border-radius: 8px;
+    padding: 1rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    margin-bottom: 1rem;
+}
+
+input[type="radio"],
+input[type="checkbox"] {
+    width: auto;
+    margin-right: 6px;
+}
+
+hr {
+    border: none;
+    height: 1px;
+    background-color: #E5E7EB;
+    margin: 1rem 0;
+}
+
+input[readonly] {
+    background-color: #f3f4f6;
+}

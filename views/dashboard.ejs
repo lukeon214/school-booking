@@ -1,18 +1,20 @@
 <h1>Your Forms</h1>
+
 <% if (!forms.length) { %>
-  <p>No forms yet. <a href="/create">Create one</a>.</p>
+  <p>You haven't created any forms yet. <a href="/create">Create one</a></p>
 <% } %>
+
 <% forms.forEach(f => { %>
   <div class="card">
-    <% forms.forEach(f => { %>
-      <div class="card">
-        <strong><%= f.title %></strong><br>
-        Panel: <a href="/panel/<%= f.id %>">Manage</a><br>
-        Public Link: <code>http://localhost:3000/form/<%= f.id %></code><br><br>
-        <form action="/delete/<%= f.id %>" method="POST" onsubmit="return confirm('Are you sure you want to delete this form?');">
-          <button style="color:red">Delete</button>
-        </form>
-      </div>
-    <% }) %>
+    <strong><%= f.title %></strong><br><br>
+    
+    <div>
+      <strong>Panel:</strong> <a href="/panel/<%= f.id %>">/panel/<%= f.id %></a><br>
+      <strong>Public Link:</strong> <code>http://localhost:3333/form/<%= f.id %></code>
+    </div><br>
+
+    <form action="/delete/<%= f.id %>" method="POST" onsubmit="return confirm('Delete this form?')">
+      <button class="danger">Delete</button>
+    </form>
   </div>
 <% }) %>

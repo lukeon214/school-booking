@@ -1,23 +1,35 @@
-<h1>Panel: <%= form.title %></h1>
+<h1>Form Panel: <%= form.title %></h1>
 
-<p>Public form: 
-  <input id="link" value="http://localhost:3333/form/<%= form.id %>" readonly>
+<div class="card">
+  <strong>Public Form Link:</strong><br>
+  <input id="formLink" readonly value="http://localhost:3000/form/<%= form.id %>">
   <button onclick="copy()">Copy</button>
-</p>
+</div>
 
 <script>
 function copy() {
-  const input = document.getElementById('link');
+  const input = document.getElementById('formLink');
   input.select();
   document.execCommand('copy');
-  alert('Copied!');
+  alert('Link copied!');
 }
 </script>
 
-<h3>Responses</h3>
-<% if (!responses.length) { %><p>No responses yet.</p><% } %>
-<ul>
-<% responses.forEach(r => { %>
-  <li><strong><%= r.name %></strong> — <%= r.choice %></li>
+<h2>Responses</h2>
+
+<% if (!responses.length) { %>
+  <p>No responses have been submitted yet.</p>
+<% } %>
+
+<% responses.forEach((response, index) => { %>
+  <div class="card">
+    <% submissions.forEach((submission, index) => { %>
+      <div class="card">
+        <strong><%= submission.email %></strong><br><br>
+        <% submission.fields.forEach(f => { %>
+          <strong><%= f.label %>:</strong> <%= f.value %><br>
+        <% }) %>
+      </div>
+    <% }) %>
+  </div>
 <% }) %>
-</ul>
