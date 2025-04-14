@@ -1,0 +1,58 @@
+.auth-background {
+  position: relative;
+  z-index: 1;
+}
+
+.auth-background::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url('/test.svg');
+  background-size: cover;
+  background-position: center;
+  z-index: -1;
+}
+
+.auth-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.auth-card {
+  max-width: 400px;
+  margin: 3rem auto;
+  padding: 2rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  position: relative;
+}
+
+.auth-card input {
+  width: 100%;
+  margin-bottom: 1.2rem;
+  padding: 0.6rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+}
+
+.auth-card button {
+  width: 100%;
+  margin-top: 1rem;
+  background: var(--primary-color);
+  color: white;
+  border-radius: 6px;
+  padding: 0.6rem;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.auth-card button:hover {
+  background: var(--secondary-color);
+}

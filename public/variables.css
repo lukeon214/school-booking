@@ -1,0 +1,8 @@
+:root {
+  --primary-color: #007BFF; /* Blue */
+  --secondary-color: #0056b3; /* Darker Blue */
+  --background-color: #f6f9fc; /* Light Grey */
+  --card-background: #ffffff; /* White */
+  --text-color: #333333; /* Dark Grey */
+  --font-family: 'Poppins', sans-serif;
+}

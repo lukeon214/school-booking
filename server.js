@@ -56,6 +56,7 @@ let db;
       form_id TEXT,
       label TEXT NOT NULL,
       type TEXT NOT NULL,
+      required INTEGER DEFAULT 0,
       choices TEXT,
       max_responses INTEGER,
       FOREIGN KEY(form_id) REFERENCES forms(id)
@@ -146,7 +147,12 @@ app.post('/login', async (req, res) => {
 // Dashboard
 app.get('/dashboard', requireLogin, async (req, res) => {
   const forms = await db.all('SELECT * FROM forms WHERE user_id = ?', req.session.userId);
-  res.render('dashboard', { forms });
+  res.render('dashboard', { title: 'Dashboard', forms });
+});
+
+app.use((req, res, next) => {
+  res.locals.title = 'Your Application';
+  next();
 });
 
 app.post('/delete/:id', requireLogin, async (req, res) => {
@@ -177,11 +183,12 @@ app.post('/create', requireLogin, async (req, res) => {
   );
 
   // Insert fields
-  const insert = await db.prepare('INSERT INTO fields (form_id, label, type, choices, max_responses) VALUES (?, ?, ?, ?, ?)');
+  const insert = await db.prepare('INSERT INTO fields (form_id, label, type, choices, max_responses, required) VALUES (?, ?, ?, ?, ?, ?)');
   for (const f of fields) {
     const choices = f.choices?.length ? JSON.stringify(f.choices) : null;
     const max = f.maxResponses || null;
-    await insert.run(formId, f.label, f.type, choices, max);
+    const required = f.required ? 1 : 0; // Convert boolean to integer
+    await insert.run(formId, f.label, f.type, choices, max, required);
   }
   await insert.finalize();
 

@@ -1,33 +1,32 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Forms</title>
-  <link rel="stylesheet" href="/style.css">
+  <title><%= title || 'Dashboard' %></title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/variables.css">
+  <link rel="stylesheet" href="/global.css">
+  <link rel="stylesheet" href="/layout.css">
+  <link rel="stylesheet" href="/components.css">
+  <link rel="stylesheet" href="/form-card.css">
 </head>
 <body>
-  <div class="background-pattern"></div>
-  <div class="layout">
-    <% if (typeof noSidebar === 'undefined' || !noSidebar) { %>
-      <aside class="sidebar">
-        <h2>📋 Booking</h2>
-    
-        <% if (user) { %>
-          <div class="nav-section">
-            <a href="/dashboard"><button class="nav-btn">Dashboard</button></a>
-            <a href="/create"><button class="nav-btn">Create Form</button></a>
-          </div>
-    
-          <div class="nav-bottom">
-            <a href="/logout"><button class="nav-btn danger">Logout</button></a>
-          </div>
-        <% } %>
-      </aside>
-    <% } %>
+  <aside class="sidebar">
+    <menu>
+      <h2>Menu</h2>
+    </menu>
+    <nav>
+      <a href="/dashboard">Dashboard</a>
+      <a href="/create">Create Form</a>
+    </nav>
+  </aside>
 
-    <main class="main">
-      <%- body %>
-    </main>
-  </div>
+  <header class="header">
+    <a href="/create"><button>Create New Form</button></a>
+  </header>
+
+  <main class="main-content">
+    <%- body %>
+  </main>
 </body>
 </html>
