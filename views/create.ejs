@@ -1,97 +1,75 @@
-<h1>Create a New Form</h1>
+<head>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="/form-create.css">
+  <link rel="stylesheet" href="/form-card.css">
+  <link rel="stylesheet" href="/card-create.css">
+</head>
+<body>
+  <div class="form-create-wrapper">
+    <form method="POST" action="/create" onsubmit="return handleSubmit()">
+      <div class="form-create-titlebar">
+        <input
+          name="title"
+          required
+          placeholder="Untitled Form"
+          class="form-title-input"
+          autocomplete="off"
+          maxlength="80"
+        /><br>
+        <span class="form-title-label">Who can fill this form?</span><br>
+        <select name="private" class="type-select">
+          <option value="0">Anyone (Public)</option>
+          <option value="1">Only logged-in users</option>
+        </select>
+      </div>
+      <hr class="create-form-divider" />
+      <div class="form-fields-list">
+        <h3>Fields</h3>
+        <div id="fields-container"></div>
+      </div>
+      <input type="hidden" name="fieldsJSON" id="fieldsJSON">
+      <hr class="create-form-divider" />
+      <div class="button-create-center">
+        <button type="submit" class="button-create"><span class="checkbox-icon">✅</span> Create Form</button>
+      </div>
+    </form>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <script>
+    let fields = [];
 
-<form method="POST" action="/create" onsubmit="return handleSubmit()">
-  <input name="title" placeholder="Form Title" required style="font-size: 1.2rem; padding: 0.6rem; width: 100%; margin-bottom: 1.5rem;">
-
-  <label>Who can fill this form?</label><br>
-  <select name="private">
-    <option value="0">Anyone (Public)</option>
-    <option value="1">Only logged-in users</option>
-  </select><br><br>
-
-  <h3>Fields</h3>
-  <div id="fields-container" class="field-sortable"></div>
-  <button type="button" onclick="addField()">➕ Add Field</button>
-  <br><br>
-
-  <input type="hidden" name="fieldsJSON" id="fieldsJSON">
-  <button type="submit">✅ Create Form</button>
-</form>
-
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-
-<script>
-  let fields = [];
-
-  function addField() {
-    fields.push({
-      label: '',
-      type: 'text',
-      required: false
-    });
-    renderFields();
-  }
-
-  function updateType(i, val) {
-    fields[i].type = val;
-    if (['radio', 'checkbox', 'dropdown'].includes(val)) {
-      fields[i].choices = fields[i].choices || ['Option 1', 'Option 2'];
-    } else {
-      delete fields[i].choices;
-    }
-    renderFields();
-  }
-
-  function addChoice(i) {
-    fields[i].choices = fields[i].choices || [];
-    fields[i].choices.push('');
-    renderFields();
-  }
-
-  function removeChoice(i, j) {
-    fields[i].choices.splice(j, 1);
-    renderFields();
-  }
-
-  function duplicateField(i) {
-    const clone = JSON.parse(JSON.stringify(fields[i]));
-    fields.splice(i + 1, 0, clone);
-    renderFields();
-  }
-
-  function removeField(i) {
-    fields.splice(i, 1);
-    renderFields();
-  }
-
-  function handleSubmit() {
-    document.getElementById('fieldsJSON').value = JSON.stringify(fields);
-    return true;
-  }
-
-  function renderFields() {
+    function renderFields() {
       const container = document.getElementById('fields-container');
       container.innerHTML = '';
 
       fields.forEach((field, i) => {
         const wrapper = document.createElement('div');
-        wrapper.className = 'card';
+        wrapper.className = 'field-card';
         wrapper.innerHTML = `
           <div class="card-drag">☰ Drag</div>
-
-          <input type="text" placeholder="Question" value="${field.label || ''}"
-            oninput="fields[${i}].label = this.value"
-            style="width: 100%; font-weight: 600; margin-bottom: 0.75rem;" />
-
-          <select onchange="updateType(${i}, this.value)">
-            <option value="text" ${field.type === 'text' ? 'selected' : ''}>Short Answer</option>
-            <option value="textarea" ${field.type === 'textarea' ? 'selected' : ''}>Long Answer</option>
-            <option value="radio" ${field.type === 'radio' ? 'selected' : ''}>Multiple Choice</option>
-            <option value="checkbox" ${field.type === 'checkbox' ? 'selected' : ''}>Checkboxes</option>
-            <option value="dropdown" ${field.type === 'dropdown' ? 'selected' : ''}>Dropdown</option>
-            <option value="number" ${field.type === 'number' ? 'selected' : ''}>Number</option>
-          </select>
-
+          <input type="text" class="field-label-input" placeholder="Question" value="${field.label || ''}"
+            oninput="fields[${i}].label = this.value" />
+            ${
+              field.type === 'text'
+                ? `<input type="text" 
+                    class="answer-preview" 
+                    placeholder="Enter your answer" 
+                    disabled 
+                    style="width:100%; margin-bottom:1rem;">`
+                : field.type === 'number'
+                ? `<input type="number" 
+                    class="answer-preview" 
+                    placeholder="Enter a number" 
+                    disabled 
+                    style="width:100%; margin-bottom:1rem;">`
+                : field.type === 'textarea'
+                ? `<textarea 
+                    class="answer-preview" 
+                    placeholder="Enter your long answer"
+                    disabled 
+                    style="width:100%; height:90px; margin-bottom:1rem; resize:none;"></textarea>`
+                : ''
+            }
           ${['radio', 'checkbox', 'dropdown'].includes(field.type) ? `
             <div id="choices-list-${i}">
               ${(field.choices || []).map((opt, j) => `
@@ -102,24 +80,24 @@
                   <button type="button" onclick="removeChoice(${i}, ${j})" class="form-btn danger">🗑</button>
                 </div>`).join('')}
             </div>
-            <button type="button" onclick="addChoice(${i})" class="form-btn">➕ Add Option</button>
+            <div class="form-option-actions">
+              <button type="button" onclick="addChoice(${i})" class="form-btn addoption">➕ Add Option</button>
+              <button type="button" onclick="removeChoice(${i})" class="form-btn rmvoption">Remove Option</button>
+            </div>
           ` : ''}
-
           <div class="form-footer">
             <div class="toggle">
               <label>Required</label>
               <input type="checkbox" ${field.required ? 'checked' : ''} onchange="fields[${i}].required = this.checked">
             </div>
-
             ${field.type === 'checkbox' ? `
               <div class="toggle">
                 <label>Multiple answers</label>
                 <input type="checkbox" checked disabled>
               </div>
             ` : ''}
-
             <div>
-              <button type="button" onclick="duplicateField(${i})" class="form-btn">📄</button>
+              <button type="button" onclick="duplicateField(${i})" class="form-btn copy">📄</button>
               <button type="button" onclick="removeField(${i})" class="form-btn danger">🗑</button>
             </div>
             <div class="toggle">
@@ -141,7 +119,85 @@
             fields.splice(e.newIndex, 0, item);
             renderFields();
           }
-        });
+        })};
+
+      const addFieldGroup = document.createElement('div');
+      addFieldGroup.className = 'add-field-group';
+      addFieldGroup.innerHTML = `
+        <button type="button" class="add-field-btn" onclick="toggleFieldPicker(event)">+ Add Field</button>
+        <div class="field-type-picker" style="display: none;">
+          <button type="button" onclick="addFieldOfType('text')"><span class="icon">📝</span> Short Answer</button>
+          <button type="button" onclick="addFieldOfType('textarea')"><span class="icon">📄</span> Long Answer</button>
+          <button type="button" onclick="addFieldOfType('radio')"><span class="icon">🔘</span> Multiple Choice</button>
+          <button type="button" onclick="addFieldOfType('checkbox')"><span class="icon">☑️</span> Checkboxes</button>
+          <button type="button" onclick="addFieldOfType('dropdown')"><span class="icon">📑</span> Dropdown</button>
+          <button type="button" onclick="addFieldOfType('number')"><span class="icon">🔢</span> Number</button>
+        </div>
+      `;
+      container.appendChild(addFieldGroup);
+    }
+
+    function toggleFieldPicker(e) {
+      e.stopPropagation();
+      const picker = e.currentTarget.nextElementSibling;
+      picker.style.display = picker.style.display === 'none' ? 'grid' : 'none';
+      if (picker.style.display === 'grid') {
+        document.addEventListener('mousedown', hidePickerOnOutsideClick);
+      }
+      function hidePickerOnOutsideClick(event) {
+        if (!picker.contains(event.target)) {
+          picker.style.display = 'none';
+          document.removeEventListener('mousedown', hidePickerOnOutsideClick);
+        }
       }
     }
-</script>
+
+    function addFieldOfType(type) {
+      fields.push({
+        label: '',
+        type,
+        required: false
+      });
+      renderFields();
+    }
+
+    function updateType(i, val) {
+      fields[i].type = val;
+      if (['radio', 'checkbox', 'dropdown'].includes(val)) {
+        fields[i].choices = fields[i].choices || ['Option 1', 'Option 2'];
+      } else {
+        delete fields[i].choices;
+      }
+      renderFields();
+    }
+
+    function addChoice(i) {
+      fields[i].choices = fields[i].choices || [];
+      fields[i].choices.push('');
+      renderFields();
+    }
+
+    function removeChoice(i, j) {
+      fields[i].choices.splice(j, 1);
+      renderFields();
+    }
+
+    function duplicateField(i) {
+      const clone = JSON.parse(JSON.stringify(fields[i]));
+      fields.splice(i + 1, 0, clone);
+      renderFields();
+    }
+
+    function removeField(i) {
+      fields.splice(i, 1);
+      renderFields();
+    }
+
+    function handleSubmit() {
+      document.getElementById('fieldsJSON').value = JSON.stringify(fields);
+      return true;
+    }
+
+    renderFields();
+  </script>
+</body>

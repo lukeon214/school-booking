@@ -14,7 +14,7 @@
   }
   
   .card a {
-    color: var(--primary-color);
+    color: #1a237e;
     text-decoration: none;
     font-weight: 500;
     display: block;
@@ -38,7 +38,37 @@
     right: 1rem;  /* Adjust position */
     transition: background-color 0.3s;
   }
-  
+
+  button.copy {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    position: absolute;
+    bottom: 1rem;
+    right: 4rem;
+    transition: background-color 0.3s;
+  }
+
+  .card-drag {
+    margin-bottom: 1rem;
+  }
+
+  .answer-preview {
+    background: #f3f6fc;
+    border: 1.5px dashed #c1cdf3;
+    color: #9fb0ce;
+    border-radius: 6px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.08rem;
+    padding: 0.7rem 1rem;
+    margin-top: 0.3rem;
+    pointer-events: none;
+    opacity: 0.85;
+  }
+
   button.danger:hover {
     background: #c82333;
   }

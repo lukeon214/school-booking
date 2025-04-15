@@ -1,0 +1,63 @@
+.card-create {
+    position: relative;
+    background: var(--card-background);
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s, box-shadow 0.3s;
+    height: auto;
+    margin-bottom: 1rem;
+}
+
+.toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 1rem;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 500;
+    color: #2746a6;
+    user-select: none;
+  }
+  
+  .toggle input[type="checkbox"] {
+    width: 42px;
+    height: 22px;
+    accent-color: #4f7fff;
+    appearance: none;
+    background-color: #e5eafd;
+    border-radius: 13px;
+    border: 1.5px solid #b2c2e1;
+    outline: none;
+    position: relative;
+    transition: 0.17s, border 0.17s;
+    cursor: pointer;
+  }
+  
+  .toggle input[type="checkbox"]::before {
+    content: "";
+    position: absolute;
+    top: 2.0px;
+    left: 3.2px;
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  
+  .toggle input[type="checkbox"]:checked {
+    background-color: #4f7fff;
+    border-color: #4f7fff;
+  }
+  
+  .toggle input[type="checkbox"]:checked::before {
+    transform: translateX(20px);
+    background: #fff;
+  }
+  
+  /* accessible focus */
+  .toggle input[type="checkbox"]:focus {
+    outline: 2px solid #4f7fff;
+  }
