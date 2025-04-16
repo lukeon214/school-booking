@@ -90,12 +90,6 @@
               <label>Required</label>
               <input type="checkbox" ${field.required ? 'checked' : ''} onchange="fields[${i}].required = this.checked">
             </div>
-            ${field.type === 'checkbox' ? `
-              <div class="toggle">
-                <label>Multiple answers</label>
-                <input type="checkbox" checked disabled>
-              </div>
-            ` : ''}
             <div>
               <button type="button" onclick="duplicateField(${i})" class="form-btn copy">📄</button>
               <button type="button" onclick="removeField(${i})" class="form-btn danger">🗑</button>

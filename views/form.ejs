@@ -1,21 +1,22 @@
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><%= form.title %></title>
   <link rel="stylesheet" href="/variables.css">
   <link rel="stylesheet" href="/global.css">
   <link rel="stylesheet" href="/layout.css">
   <link rel="stylesheet" href="/components.css">
+  <link rel="stylesheet" href="/form-page.css">
 </head>
 <body>
 
 <main>
-  <h1 style="text-align:center; margin-bottom: 2rem;"><%= form.title %></h1>
-
   <% if (success) { %>
     <p style="text-align: center;">✅ Thanks! Submitted.</p>
   <% } else { %>
   
   <form method="POST" class="form-page">
+    <h1><%= form.title %></h1>
     <% fields.forEach(f => {
       const full = f.max_responses && f.usage >= f.max_responses;
       const options = f.choices ? JSON.parse(f.choices) : [];
