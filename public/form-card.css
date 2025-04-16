@@ -5,7 +5,7 @@
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     transition: transform 0.3s, box-shadow 0.3s;
-    height: 200px;
+    width: auto;
   }
   
   .card:hover {
@@ -72,3 +72,83 @@
   button.danger:hover {
     background: #c82333;
   }
+
+  /* Grid for uniform card heights */
+.response-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+  margin: 32px 0;
+  align-items: stretch;
+}
+
+/* Card styling */
+.card-response {
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 6px 21px rgba(60, 60, 120, 0.08), 0 1.5px 3px rgba(0,0,0,0.05);
+  padding: 26px 22px 20px 22px;
+  box-sizing: border-box;
+  border: 1px solid #ececec;
+  transition: transform 0.14s;
+  min-height: 360px; /* Adjust as needed */
+  max-height: 500px;
+  overflow: auto;
+}
+
+.card-response:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 10px 30px rgba(60, 60, 120, 0.14), 0 3px 6px rgba(0,0,0,0.11);
+}
+
+.card-response-email {
+  color: #2767b3;
+  font-size: 1.08em;
+  margin-bottom: 20px;
+  word-break: break-all;
+  border-bottom: 1.5px dashed #e3e6ed;
+  padding-bottom: 8px;
+}
+
+/* Field row: stack label and value vertically */
+.card-response-fields .response-field-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 16px;
+}
+
+/* Muted label, block display */
+.response-field-label {
+  font-size: 0.98em;
+  color: #6b7887;
+  margin-bottom: 2px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
+
+/* Value with 'filled' look */
+.response-field-value {
+  display: block;
+  background: #f7fafd;
+  color: #262727;
+  border-radius: 5px;
+  padding: 7px 11px;
+  font-size: 1.05em;
+  box-shadow: 0 1px 1.5px rgba(130, 173, 219, 0.05);
+  word-break: break-word;
+}
+
+/* Responsive tweaks */
+@media (max-width: 800px) {
+  .response-list {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .card-response {
+    min-height: 220px;
+    padding: 14px 7px;
+  }
+}

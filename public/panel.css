@@ -11,6 +11,7 @@
     align-items: flex-start;
     padding: 2.5rem 2.5rem 1.5rem 2.5rem;
     background: #fff;
+    flex-wrap: wrap;
   }
   
   .panel-title {
@@ -54,11 +55,10 @@
   
   .panel-export-btn {
     display: inline-block;
-    margin-top: 0.25rem;
+    margin-top: 4.5rem;
     background: #4f7fff;
     color: #fff;
     border-radius: 7px;
-    font-size: 1.06rem;
     font-weight: 600;
     padding: 0.6rem 1.35rem;
     text-decoration: none;

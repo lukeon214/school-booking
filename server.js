@@ -298,8 +298,9 @@ app.get('/panel/:id', requireLogin, async (req, res) => {
     });
   });
 
+  const fields = await db.all('SELECT * FROM fields WHERE form_id = ?', [req.params.id]);
   const responses = Object.values(grouped);
-  res.render('panel', { form, responses });
+  res.render('panel', { form, fields, responses });
 });
 
 app.get('/panel/:id/analytics', requireLogin, async (req, res) => {

@@ -4,6 +4,7 @@
   <link rel="stylesheet" href="/global.css">
   <link rel="stylesheet" href="/layout.css">
   <link rel="stylesheet" href="/panel.css">
+  <link rel="stylesheet" href="/form-page-panel.css">
 </head>
 <div class="admin-fullpanel">
   <div class="admin-panel-header">
@@ -14,21 +15,42 @@
         <button class="panel-copy" onclick="copy()">Copy</button>
       </div>
     </div>
-    <a href="/export/<%= form.id %>" class="panel-export-btn">⬇ Export CSV</a>
+    <a href="/export/<%= form.id %>" class="panel-export-btn">⬇ Export to Excel</a>
   </div>
   <hr class="admin-panel-separator"/>
 
   <div class="admin-panel-body">
-    
+    <h1>Form preview</h1>
+    <form method="POST" class="form-page">
+      <div class="form-preview">
+        <% fields.forEach(f => { %>
+          <div class="form-field">
+            <labell><%= f.label %>:</labell>
+            <% if (f.type === 'text') { %>
+              <input type="text" disabled placeholder="(text)" />
+            <% } else if (f.type === 'textarea') { %>
+              <textarea disabled placeholder="(long answer)"></textarea>
+            <% } else if (f.type === 'number') { %>
+              <input type="number" disabled placeholder="(number)" />
+            <% } else if (f.type === 'radio' || f.type === 'checkbox' || f.type === 'dropdown') { 
+              const options = JSON.parse(f.choices || '[]');
+              options.forEach(opt => { %>
+                <label>
+                  <input type="<%= f.type === 'checkbox' ? 'checkbox' : (f.type === 'radio' ? 'radio' : 'checkbox') %>" disabled />
+                  <%= opt %>
+                </label>
+            <% }) } %>
+          </div>
+        <% }) %>
+      </div>
+        <div id="analytics-root"
+          style="display: flex;gap: 1.5rem;max-width: 100vw;margin-bottom: 2rem;flex-direction: column;flex-wrap: wrap;align-content: flex-end;">
+       </div>
+    </form>
   </div>
 </div>
 
-<h2>Analytics</h2>
-<div id="analytics-root"
-     style="display: flex; flex-wrap: wrap; gap: 1.5rem; justify-content: flex-start; max-width: 100vw; margin-bottom: 2rem;">
-</div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   fetch(window.location.pathname + '/analytics')
@@ -96,16 +118,23 @@ function copy() {
 }
 </script>
 
-<h2>Responses</h2>
+<h1 style="margin-top: 1.5rem;margin-bottom: 1.5rem;display: flex;justify-content: center;">Individual Responses</h1>
 <% if (!responses.length) { %>
   <p>No responses submitted yet.</p>
 <% } %>
 
-<% responses.forEach((submission, index) => { %>
-  <div class="card">
-    <strong><%= submission.email %></strong><br><br>
-    <% submission.fields.forEach(f => { %>
-      <strong><%= f.label %>:</strong> <%= f.value %><br>
-    <% }) %>
-  </div>
-<% }) %>
+<div class="response-list">
+  <% responses.forEach((submission, index) => { %>
+    <div class="card-response">
+      <div class="card-response-email"><strong><%= submission.email %></strong></div>
+      <div class="card-response-fields">
+        <% submission.fields.forEach(f => { %>
+          <div class="response-field-row">
+            <span class="response-field-label"><%= f.label %></span>
+            <span class="response-field-value"><%= f.value %></span>
+          </div>
+        <% }) %>
+      </div>
+    </div>
+  <% }) %>
+</div>
