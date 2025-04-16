@@ -1,0 +1,139 @@
+.admin-fullpanel {
+    padding: 0;
+    margin: 0;
+    background: #f7fafc;
+    box-sizing: border-box;
+  }
+  
+  .admin-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 2.5rem 2.5rem 1.5rem 2.5rem;
+    background: #fff;
+  }
+  
+  .panel-title {
+    margin: 0 0 1rem 0;
+    font-size: 2.5rem;
+    color: #2259a6;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+  }
+  
+  .panel-link-group {
+    display: flex;
+    gap: 0.5rem;
+  }
+  
+  .panel-link {
+    min-width: 450px;
+    font-size: 1.02rem;
+    padding: 0.55rem 0.8rem;
+    border: 1.3px solid #dfe6f3;
+    border-radius: 7px;
+    background: #f3f7fd;
+    color: #2b395b;
+    outline: none;
+  }
+  
+  .panel-copy {
+    background: #3169c1;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    padding: 0.53rem 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.13s;
+  }
+  .panel-copy:hover {
+    background: #234a8b;
+  }
+  
+  .panel-export-btn {
+    display: inline-block;
+    margin-top: 0.25rem;
+    background: #4f7fff;
+    color: #fff;
+    border-radius: 7px;
+    font-size: 1.06rem;
+    font-weight: 600;
+    padding: 0.6rem 1.35rem;
+    text-decoration: none;
+    box-shadow: 0 2px 8px rgba(44,82,160,0.06);
+    border: none;
+    transition: 0.13s;
+  }
+  .panel-export-btn:hover {
+    background: #3862d6;
+  }
+  
+  .admin-panel-separator {
+    border: none;
+    border-top: 1.7px solid #e1e7f1;
+    margin: 0;
+  }
+  
+  .admin-panel-body {
+    padding: 2rem 2.5rem;
+  }
+
+  .analytics-card p {
+    margin-top: 2.5rem;
+  }
+
+  .response-group {
+    margin-bottom: 2rem;
+    border-radius: 8px;
+    background: #f7faff;
+    box-shadow: 0 2px 6px #c0d0ef14;
+    padding: 1rem 1.5rem;
+  }
+  .response-question {
+    font-weight: 600;
+    font-size: 1.2em;
+    color: #2645a1;
+    margin-bottom: 0.6em;
+  }
+
+  .response-answer {
+    margin-bottom: 0.45em;
+    padding: 0.3em 0.7em;
+    border-radius: 6px;
+    background: #e8edff;
+    display: flex;
+    gap: 1em;
+    align-items: baseline;
+  }
+  .response-answer-email {
+    color: #888a9b;
+    font-size: 0.95em;
+    min-width: 80px;
+  }
+  .response-answer-value {
+    color: #29305a;
+    word-break: break-all;
+  }
+  
+  /* Mobile responsiveness */
+  @media (max-width: 700px) {
+    .admin-panel-header,
+    .admin-panel-body {
+      padding: 1.1rem 0.9rem;
+    }
+    .panel-title {
+      font-size: 1.23rem;
+    }
+    .panel-link {
+      min-width: 120px;
+      font-size: 0.93rem;
+      padding: 0.39rem 0.5rem;
+    }
+    .panel-copy, .panel-export-btn {
+      font-size: 0.94rem;
+      padding: 0.38rem 0.7rem;
+      border-radius: 5px;
+    }
+  }

@@ -3,19 +3,91 @@
   <link rel="stylesheet" href="/variables.css">
   <link rel="stylesheet" href="/global.css">
   <link rel="stylesheet" href="/layout.css">
-  <link rel="stylesheet" href="/components.css">
-  <link rel="stylesheet" href="/form-card.css">
+  <link rel="stylesheet" href="/panel.css">
 </head>
-<h1>Form Panel: <%= form.title %></h1>
+<div class="admin-fullpanel">
+  <div class="admin-panel-header">
+    <div>
+      <h1 class="panel-title"><%= form.title %></h1>
+      <div class="panel-link-group">
+        <input id="formLink" class="panel-link" readonly value="http://localhost:3333/form/<%= form.id %>">
+        <button class="panel-copy" onclick="copy()">Copy</button>
+      </div>
+    </div>
+    <a href="/export/<%= form.id %>" class="panel-export-btn">⬇ Export CSV</a>
+  </div>
+  <hr class="admin-panel-separator"/>
 
-<div class="card">
-  <strong>Public Form Link:</strong><br>
-  <input id="formLink" readonly value="http://localhost:3333/form/<%= form.id %>">
-  <button onclick="copy()">Copy</button>
-  <a href="/export/<%= form.id %>" class="form-btn">⬇ Export CSV</a>
+  <div class="admin-panel-body">
+    
+  </div>
 </div>
 
+<h2>Analytics</h2>
+<div id="analytics-root"
+     style="display: flex; flex-wrap: wrap; gap: 1.5rem; justify-content: flex-start; max-width: 100vw; margin-bottom: 2rem;">
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+  fetch(window.location.pathname + '/analytics')
+    .then(r => r.json())
+    .then(data => {
+      const root = document.getElementById('analytics-root');
+      let colorPalette = [
+        "#4e79a7","#f28e2c","#e15759","#76b7b2","#59a14f",
+        "#edc949","#af7aa1","#ff9da7","#9c755f","#bab0ab"
+      ];
+
+      // Card showing total submissions
+      if (data.__total_responses__) {
+        const totalCard = document.createElement('div');
+        totalCard.className = "analytics-card";
+        totalCard.innerHTML = `<h3>Total Responses</h3><p style="font-size:4em;font-weight:bold">${data.__total_responses__}</p>`;
+        root.appendChild(totalCard);
+      }
+      
+
+      for (const [label, stat] of Object.entries(data)) {
+        // Only graph for radio/checkbox/dropdown
+        if (!['radio', 'checkbox', 'dropdown'].includes(stat.type)) continue;
+
+        const container = document.createElement('div');
+        container.className = "analytics-card";
+        const heading = document.createElement('h3');
+        heading.textContent = label;
+        container.appendChild(heading);
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 210; canvas.height = 140;
+        container.appendChild(canvas);
+        let chartType = (stat.type === 'checkbox') ? 'bar' : 'pie';
+        let options = {
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { boxWidth: 15 } } }
+        };
+        if (stat.type === 'checkbox') {
+          options.indexAxis = 'y';
+          options.plugins.legend.display = false;
+        }
+        new Chart(canvas, {
+          type: chartType,
+          data: {
+            labels: Object.keys(stat.counts),
+            datasets: [{
+              data: Object.values(stat.counts),
+              backgroundColor: colorPalette.slice(0, Object.keys(stat.counts).length)
+            }]
+          },
+          options
+        });
+        root.appendChild(container);
+      }
+    });
+});
+
+
 function copy() {
   const input = document.getElementById('formLink');
   input.select();

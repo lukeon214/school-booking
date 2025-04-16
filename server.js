@@ -302,6 +302,45 @@ app.get('/panel/:id', requireLogin, async (req, res) => {
   res.render('panel', { form, responses });
 });
 
+app.get('/panel/:id/analytics', requireLogin, async (req, res) => {
+  const formId = req.params.id;
+  const fields = await db.all('SELECT * FROM fields WHERE form_id = ?', [formId]);
+  const analytics = {};
+
+  for (const field of fields) {
+    if (['radio', 'checkbox', 'dropdown'].includes(field.type)) {
+      const options = JSON.parse(field.choices);
+      const counts = {};
+      for (const opt of options) {
+        const q = `
+          SELECT COUNT(*) as cnt FROM answers 
+          WHERE field_id = ? AND value = ?
+        `;
+        const resCount = await db.get(q, [field.id, opt]);
+        counts[opt] = resCount.cnt;
+      }
+      analytics[field.label] = { type: field.type, counts };
+    } else if (field.type === 'number') {
+      const stats = await db.get(
+        `SELECT 
+          COUNT(*) as count, 
+          AVG(CAST(value AS REAL)) as avg, 
+          MIN(CAST(value AS REAL)) as min, 
+          MAX(CAST(value AS REAL)) as max
+        FROM answers WHERE field_id = ?`, [field.id]
+      );
+      analytics[field.label] = { type: 'number', stats };
+    } else {
+      const count = await db.get(
+        `SELECT COUNT(*) as cnt FROM answers WHERE field_id = ?`,
+        [field.id]
+      );
+      analytics[field.label] = { type: field.type, submissions: count.cnt };
+    }
+  }
+  res.json(analytics);
+});
+
 app.get('/export/:id', requireLogin, async (req, res) => {
   const form = await db.get('SELECT * FROM forms WHERE id = ? AND user_id = ?', [req.params.id, req.session.userId]);
   if (!form) return res.status(403).send('Forbidden');
