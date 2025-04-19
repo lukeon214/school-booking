@@ -77,7 +77,6 @@ let db;
     );
   `);
 
-  // OPTIONAL auto-migrate
   try {
     await db.exec(`ALTER TABLE forms ADD COLUMN private INTEGER DEFAULT 0`);
   } catch (e) { /* already exists */ }
@@ -97,13 +96,12 @@ app.get('/', (req, res) => {
   res.render('index', { noSidebar: true });
 });
 
-// Register
 app.get('/register', (req, res) => {
   const redirectTo = req.query.redirect || '/dashboard';
   res.render('register', {
     redirectTo,
     noSidebar: true,
-    layout: false // ✅ needed to avoid layout.ejs
+    layout: false
   });
 });
 
@@ -117,7 +115,6 @@ app.post('/register', async (req, res) => {
       [username, email, hash]
     );
 
-    // Auto-login
     const user = await db.get('SELECT * FROM users WHERE username = ?', username);
     req.session.userId = user.id;
 
@@ -127,7 +124,6 @@ app.post('/register', async (req, res) => {
   }
 });
 
-// Login
 app.get('/login', (req, res) => {
   const redirectTo = req.query.redirect || '/dashboard';
   res.render('login', { redirectTo, noSidebar: true, layout: false });
@@ -144,7 +140,6 @@ app.post('/login', async (req, res) => {
   res.redirect(req.body.redirectTo || '/dashboard');
 });
 
-// Dashboard
 app.get('/dashboard', requireLogin, async (req, res) => {
   const forms = await db.all('SELECT * FROM forms WHERE user_id = ?', req.session.userId);
   res.render('dashboard', { title: 'Dashboard', forms });
@@ -164,7 +159,6 @@ app.post('/delete/:id', requireLogin, async (req, res) => {
   res.redirect('/dashboard');
 });
 
-// Create Form
 app.get('/create', requireLogin, (req, res) => {
   res.render('create');
 });
@@ -176,18 +170,16 @@ app.post('/create', requireLogin, async (req, res) => {
   const fields = JSON.parse(fieldsJSON);
   const formId = uuidv4();
 
-  // Insert form
   await db.run(
     'INSERT INTO forms (id, title, user_id, private) VALUES (?, ?, ?, ?)',
     [formId, title, req.session.userId, isPrivate]
   );
 
-  // Insert fields
   const insert = await db.prepare('INSERT INTO fields (form_id, label, type, choices, max_responses, required) VALUES (?, ?, ?, ?, ?, ?)');
   for (const f of fields) {
     const choices = f.choices?.length ? JSON.stringify(f.choices) : null;
     const max = f.maxResponses || null;
-    const required = f.required ? 1 : 0; // Convert boolean to integer
+    const required = f.required ? 1 : 0;
     await insert.run(formId, f.label, f.type, choices, max, required);
   }
   await insert.finalize();
@@ -195,7 +187,6 @@ app.post('/create', requireLogin, async (req, res) => {
   res.redirect('/dashboard');
 });
 
-// Display public form
 app.get('/form/:id', async (req, res) => {
   const form = await db.get('SELECT * FROM forms WHERE id = ?', req.params.id);
   if (!form) return res.status(404).send('Form not found');
@@ -204,7 +195,6 @@ app.get('/form/:id', async (req, res) => {
     return res.redirect(`/login?redirect=/form/${form.id}`);
   }
 
-  // Get fields and current usage per field
   const fields = await db.all(`
     SELECT f.*, COUNT(a.id) AS usage
     FROM fields f
@@ -221,7 +211,6 @@ app.get('/form/:id', async (req, res) => {
   });
 });
 
-// Submit public form
 app.post('/form/:id', async (req, res) => {
   const form = await db.get('SELECT * FROM forms WHERE id = ?', req.params.id);
   if (!form) return res.status(404).send('Form not found');
@@ -233,7 +222,6 @@ app.post('/form/:id', async (req, res) => {
   const userId = form.private ? req.session.userId : null;
   const submissionId = uuidv4();
 
-  // Get fields + usage
   const fields = await db.all(`
     SELECT f.*, COUNT(a.id) as usage
     FROM fields f LEFT JOIN answers a ON a.field_id = f.id
@@ -266,11 +254,11 @@ app.get('/form/:id/submitted', async (req, res) => {
 
   res.render('success', {
     formId: form.id,
-    userId: req.session.userId || null
+    userId: req.session.userId || null,
+    layout: false
   });
 });
 
-// Panel
 app.get('/panel/:id', requireLogin, async (req, res) => {
   const form = await db.get('SELECT * FROM forms WHERE id = ? AND user_id = ?', [req.params.id, req.session.userId]);
   if (!form) return res.status(403).send('Forbidden');
