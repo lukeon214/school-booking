@@ -82,6 +82,10 @@ let db;
   } catch (e) { /* already exists */ }
 
   try {
+    await db.exec(`ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0`);
+  } catch (e) { /* already exists */ }
+
+  try {
     await db.exec(`ALTER TABLE answers ADD COLUMN user_id INTEGER`);
   } catch (e) { /* already exists */ }
 
@@ -138,6 +142,12 @@ app.post('/login', async (req, res) => {
 
   req.session.userId = user.id;
   res.redirect(req.body.redirectTo || '/dashboard');
+});
+
+app.post('/logout', (req, res) => {
+  req.session.destroy(() => {
+    res.redirect('/login');
+  });
 });
 
 app.get('/dashboard', requireLogin, async (req, res) => {
