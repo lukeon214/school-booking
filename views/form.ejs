@@ -41,7 +41,7 @@
           <% }) %>
         </div>
       <% } else if (f.type === 'checkbox') { %>
-        <div class="field-group">
+        <div class="field-group"<% if (f.required) { %> data-required="true"<% } %>>
           <% options.forEach(opt => { %>
             <label>
               <input type="checkbox" name="field_<%= f.id %>[]" value="<%= opt %>">
@@ -61,4 +61,24 @@
     <button type="submit">Submit</button>
   </form>
   <% } %>
+
+  <script>
+    document.querySelector('.form-page').addEventListener('submit', function(e) {
+      document.querySelectorAll('.checkbox-error').forEach(el => el.remove());
+      let valid = true;
+      document.querySelectorAll('.field-group[data-required="true"]').forEach(group => {
+        const checked = group.querySelectorAll('input[type="checkbox"]:checked').length;
+        if (checked === 0) {
+          valid = false;
+          let errorDiv = document.createElement('div');
+          errorDiv.className = 'checkbox-error';
+          errorDiv.style.color = '#e83b4e';
+          errorDiv.style.marginTop = '0.4em';
+          errorDiv.textContent = 'Please select at least one option.';
+          group.appendChild(errorDiv);
+        }
+      });
+      if (!valid) e.preventDefault();
+    });
+  </script>
 </main>

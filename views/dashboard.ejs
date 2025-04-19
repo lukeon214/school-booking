@@ -14,11 +14,11 @@
       <div class="card">
         <a href="/panel/<%= form.id %>"><strong><%= form.title %></strong></a>
         <% if (form.private) { %>
-          <em>Restricted to members only</em>
+          <em>Logged-in members only</em>
         <% } else { %>
           <em>Public</em>
         <% } %>
-        <form action="/delete/<%= form.id %>" method="POST" onsubmit="return confirm('Delete this form?')">
+        <form action="/delete/<%= form.id %>" method="POST">
           <button class="danger">Delete</button>
         </form>
       </div>
