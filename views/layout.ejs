@@ -11,15 +11,23 @@
   <link rel="stylesheet" href="/components.css">
   <link rel="stylesheet" href="/form-card.css">
   <link rel="stylesheet" href="/form-create.css">
+  <link rel="stylesheet" href="/sidebar-nav.css">
 </head>
 <body>
   <aside class="sidebar">
     <menu>
       <h2>Menu</h2>
     </menu>
-    <nav>
-      <a href="/dashboard">Dashboard</a>
-      <a href="/create">Create Form</a>
+    <nav class="custom-sidebar-nav">
+      <a href="/dashboard" class="sidebar-link">
+        <button type="button" class="sidebar-btn">Dashboard</button>
+      </a>
+      <a href="/create" class="sidebar-link">
+        <button type="button" class="sidebar-btn">Create Form</button>
+      </a>
+      <form action="/logout" method="POST" class="sidebar-link sidebar-logout-form">
+        <button type="submit" class="sidebar-btn logout">Logout</button>
+      </form>
     </nav>
   </aside>
 
