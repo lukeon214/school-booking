@@ -1,0 +1,39 @@
+version: "3.9"
+services:
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: formsdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql  # ← Changed here
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/formsdb
+      JWT_SECRET: supersecret123
+      PORT: 3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "4173:4173"
+    environment:
+      VITE_API_URL: http://backend:3001
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
