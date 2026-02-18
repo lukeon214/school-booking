@@ -8,5 +8,6 @@ export default defineConfig({
   },
   preview: {
     port: 4173,
+    allowedHosts: ['form.databooq.com']
   }
 })

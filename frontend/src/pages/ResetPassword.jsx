@@ -1,63 +1,32 @@
 import { useState } from 'react';
 import axios from 'axios';
-import { useNavigate, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 
-function Register() {
-  const [email, setEmail] = useState('');
+function ResetPassword() {
+  const { token } = useParams();
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email || !password) {
-      setError('Email and password required');
-      return;
-    }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
-      return;
-    }
-    if (!email.includes('@')) {
-      setError('Invalid email');
-      return;
-    }
-
     try {
-      await axios.post(`${import.meta.env.VITE_API_URL}/register`, { email, password }, { withCredentials: true });
-      navigate('/dashboard');
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/reset-password/${token}`, { password });
+      setMessage(res.data.message);
+      setError('');
     } catch (err) {
-      setError(err.response?.data?.error || 'Error registering');
+      setError(err.response?.data?.error || 'Error');
+      setMessage('');
     }
   };
 
   return (
     <div className="auth-page">
       <form className="modern-form" onSubmit={handleSubmit}>
-        <div className="form-title">Sign Up</div>
+        <div className="form-title">Reset Password</div>
 
         <div className="form-body">
-          <div className="input-group-auth">
-            <div className="input-wrapper">
-              <svg fill="none" viewBox="0 0 24 24" className="input-icon">
-                <path
-                  stroke-width="1.5"
-                  stroke="currentColor"
-                  d="M3 8L10.8906 13.2604C11.5624 13.7083 12.4376 13.7083 13.1094 13.2604L21 8M5 19H19C20.1046 19 21 18.1046 21 17V7C21 5.89543 20.1046 5 19 5H5C3.89543 5 3 5.89543 3 7V17C3 18.1046 3.89543 19 5 19Z"
-                ></path>
-              </svg>
-              <input
-                required
-                placeholder="Email"
-                className="form-input"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-          </div>
-
           <div className="input-group-auth">
             <div className="input-wrapper">
               <svg fill="none" viewBox="0 0 24 24" className="input-icon">
@@ -69,7 +38,7 @@ function Register() {
               </svg>
               <input
                 required
-                placeholder="Password"
+                placeholder="New Password"
                 className="form-input"
                 type={showPassword ? 'text' : 'password'}
                 value={password}
@@ -96,19 +65,20 @@ function Register() {
         </div>
 
         <button className="submit-button" type="submit">
-          <span className="button-text">Create Account</span>
+          <span className="button-text">Reset Password</span>
           <div className="button-glow"></div>
         </button>
 
         <div className="form-footer">
           <Link className="login-link" to="/login">
-            Already have an account? <span>Login</span>
+            Back to <span>Login</span>
           </Link>
         </div>
+        {message && <p>{message}</p>}
         {error && <p className="error">{error}</p>}
       </form>
     </div>
   );
 }
 
-export default Register;
+export default ResetPassword;

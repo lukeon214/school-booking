@@ -5,10 +5,10 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --only=production
 
-# Copy Prisma files and generate client
 COPY prisma ./prisma
+COPY prisma/migrations ./prisma/migrations
 RUN npx prisma generate
 
 COPY . .
 
-CMD ["npm", "start"]
+CMD ["sh", "-c", "npx prisma migrate deploy && npm start"]

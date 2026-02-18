@@ -1,40 +1,109 @@
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
+import { useState } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
-
-const schema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
-});
+import { useNavigate, Link } from 'react-router-dom';
 
 function Login() {
-  const { register, handleSubmit, formState: { errors } } = useForm({ resolver: zodResolver(schema) });
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const onSubmit = async (data) => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!email || !password) {
+      setError('Email and password required');
+      return;
+    }
+
     try {
-      await axios.post(`${import.meta.env.VITE_API_URL}/auth/login`, data, { withCredentials: true });
-      navigate('/');
-    } catch (error) {
-      alert(error.response?.data?.error || 'Error');
+      await axios.post(`${import.meta.env.VITE_API_URL}/login`, { email, password }, { withCredentials: true });
+      navigate('/dashboard');
+    } catch (err) {
+      setError(err.response?.data?.error || 'Error logging in');
     }
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="card p-4">
-      <h2>Login</h2>
-      <div className="mb-3">
-        <input type="email" className="form-control" placeholder="Email" {...register('email')} />
-        {errors.email && <p className="text-danger">{errors.email.message}</p>}
-      </div>
-      <div className="mb-3">
-        <input type="password" className="form-control" placeholder="Password" {...register('password')} />
-        {errors.password && <p className="text-danger">{errors.password.message}</p>}
-      </div>
-      <button type="submit" className="btn btn-primary">Login</button>
-    </form>
+    <div className="auth-page">
+      <form className="modern-form" onSubmit={handleSubmit}>
+        <div className="form-title">Sign In</div>
+
+        <div className="form-body">
+          <div className="input-group-auth">
+            <div className="input-wrapper">
+              <svg fill="none" viewBox="0 0 24 24" className="input-icon">
+                <path
+                  stroke-width="1.5"
+                  stroke="currentColor"
+                  d="M3 8L10.8906 13.2604C11.5624 13.7083 12.4376 13.7083 13.1094 13.2604L21 8M5 19H19C20.1046 19 21 18.1046 21 17V7C21 5.89543 20.1046 5 19 5H5C3.89543 5 3 5.89543 3 7V17C3 18.1046 3.89543 19 5 19Z"
+                ></path>
+              </svg>
+              <input
+                required
+                placeholder="Email"
+                className="form-input"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="input-group-auth">
+            <div className="input-wrapper">
+              <svg fill="none" viewBox="0 0 24 24" className="input-icon">
+                <path
+                  stroke-width="1.5"
+                  stroke="currentColor"
+                  d="M12 10V14M8 6H16C17.1046 6 18 6.89543 18 8V16C18 17.1046 17.1046 18 16 18H8C6.89543 18 6 17.1046 6 16V8C6 6.89543 6.89543 6 8 6Z"
+                ></path>
+              </svg>
+              <input
+                required
+                placeholder="Password"
+                className="form-input"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <button className="password-toggle" type="button" onClick={() => setShowPassword(!showPassword)}>
+                <svg fill="none" viewBox="0 0 24 24" className="eye-icon">
+                  <path
+                    stroke-width="1.5"
+                    stroke="currentColor"
+                    d="M2 12C2 12 5 5 12 5C19 5 22 12 22 12C22 12 19 19 12 19C5 19 2 12 2 12Z"
+                  ></path>
+                  <circle
+                    stroke-width="1.5"
+                    stroke="currentColor"
+                    r="3"
+                    cy="12"
+                    cx="12"
+                  ></circle>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <button className="submit-button" type="submit">
+          <span className="button-text">Sign In</span>
+          <div className="button-glow"></div>
+        </button>
+
+        <div className="form-footer">
+          <Link className="login-link" to="/forgot-password">
+            Forgot password?
+          </Link>
+          <br />
+          <Link className="login-link" to="/register">
+            Don't have an account? <span>Sign Up</span>
+          </Link>
+        </div>
+        {error && <p className="error">{error}</p>}
+      </form>
+    </div>
   );
 }
 

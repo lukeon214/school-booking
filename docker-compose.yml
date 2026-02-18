@@ -8,10 +8,16 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     volumes:
-      - pgdata:/var/lib/postgresql  # ← Changed here
+      - pgdata:/var/lib/postgresql
+    ports:
+      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-net
 
   backend:
     build: ./backend
@@ -22,18 +28,46 @@ services:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/formsdb
       JWT_SECRET: supersecret123
       PORT: 3001
+      SMTP_HOST: smtp.gmail.com
+      SMTP_PORT: 465
+      SMTP_USER: lukas.hajek777@gmail.com
+      SMTP_PASS: xupfhpkubcmxepvb
+      APP_URL: https://form.databooq.com
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - app-net
 
   frontend:
     build: ./frontend
     ports:
       - "4173:4173"
     environment:
-      VITE_API_URL: http://backend:3001
+      VITE_API_URL: https://api.databooq.com
     depends_on:
       - backend
+    networks:
+      - app-net
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "8080:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - app-net
 
 volumes:
   pgdata:
+  pgadmin-data:
+
+networks:
+  app-net:

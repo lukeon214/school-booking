@@ -50,9 +50,13 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Me (protected)
+router.post('/logout', (req, res) => {
+  res.clearCookie('token');
+  res.json({ message: 'Logged out' });
+});
+
 router.get('/me', async (req, res) => {
-  res.json({ user: req.user }); // From middleware
+  res.json({ user: req.user });
 });
 
 module.exports = router;

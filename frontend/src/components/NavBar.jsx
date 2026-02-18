@@ -1,18 +1,29 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import axios from 'axios';
 
 function NavBar() {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    axios.get(`${import.meta.env.VITE_API_URL}/me`, { withCredentials: true })
+      .then(res => setUser(res.data.user))
+      .catch(() => setUser(null));
+  }, []);
+
+  const handleLogout = async () => {
+    await axios.post(`${import.meta.env.VITE_API_URL}/logout`, {}, { withCredentials: true });
+    setUser(null);
+    window.location.href = '/';
+  };
+
   return (
-    <nav className="navbar navbar-expand-lg navbar-light bg-light mb-4">
-      <div className="container-fluid">
-        <Link className="navbar-brand" to="/">Forms App</Link>
-        <div className="collapse navbar-collapse">
-          <ul className="navbar-nav ms-auto">
-            <li className="nav-item"><Link className="nav-link" to="/login">Login</Link></li>
-            <li className="nav-item"><Link className="nav-link" to="/register">Register</Link></li>
-          </ul>
-        </div>
+    <div className="nav-bar">
+      <div>
+        <Link to="/dashboard">Dashboard</Link>
       </div>
-    </nav>
+      {user && <button className="logout" onClick={handleLogout}>Logout</button>}
+    </div>
   );
 }
 
