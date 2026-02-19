@@ -11,6 +11,7 @@ const app = express();
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
+app.set('trust proxy', 1);
 
 app.use(cors({
   origin: ['https://form.databooq.com'],
@@ -21,13 +22,16 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
+// ====================== PROTECTED ROUTES ======================
+
 app.get('/hello', authMiddleware, async (req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
     res.json({ message: 'Hello from backend! DB connected.', user: req.user });
-      } catch (error) {
+  } catch (error) {
     res.status(500).json({ message: 'DB error', error: error.message });
-}})
+  }
+});
 
 app.post('/register', async (req, res) => {
   const { email, password } = req.body;
@@ -166,6 +170,14 @@ app.get('/forms', authMiddleware, async (req, res) => {
     const forms = await prisma.form.findMany({
       where: { userId: req.user.userId },
       orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        publicId: true,
+        title: true,
+        description: true,
+        isPublished: true,
+        createdAt: true
+      }
     });
     res.json(forms);
   } catch (error) {
@@ -178,13 +190,13 @@ app.post('/forms', authMiddleware, async (req, res) => {
   if (!title) return res.status(400).json({ error: 'Title required' });
 
   try {
-    const slug = title.toLowerCase().replace(/\s+/g, '-') + '-' + Math.random().toString(36).slice(2, 8); // Simple unique slug
+    const slug = title.toLowerCase().replace(/\s+/g, '-') + '-' + Math.random().toString(36).slice(2, 8);
     const form = await prisma.form.create({
       data: {
         userId: req.user.userId,
         title,
         description,
-        schemaJson: { questions: [] }, // Empty for now
+        schemaJson: { questions: [] },
         slug,
       },
     });
@@ -194,42 +206,149 @@ app.post('/forms', authMiddleware, async (req, res) => {
   }
 });
 
-app.get('/forms/:id', authMiddleware, async (req, res) => {
+app.get('/forms/:publicId', authMiddleware, async (req, res) => {
   try {
     const form = await prisma.form.findUnique({
-      where: { id: parseInt(req.params.id) },
+      where: { publicId: req.params.publicId },
+      select: {
+        id: true,
+        publicId: true,
+        userId: true,
+        title: true,
+        description: true,
+        schemaJson: true,
+        isPublished: true,
+        createdAt: true
+      }
     });
-    if (!form || form.userId !== req.user.userId) return res.status(404).json({ error: 'Not found' });
+
+    if (!form || form.userId !== req.user.userId) {
+      return res.status(404).json({ error: 'Not found' });
+    }
     res.json(form);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-app.put('/forms/:id', authMiddleware, async (req, res) => {
+app.put('/forms/:publicId', authMiddleware, async (req, res) => {
   const { title, description, isPublished, schemaJson } = req.body;
   try {
+    const existingForm = await prisma.form.findUnique({
+      where: { publicId: req.params.publicId },
+      select: { userId: true }
+    });
+
+    if (!existingForm || existingForm.userId !== req.user.userId) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
     const form = await prisma.form.update({
-      where: { id: parseInt(req.params.id) },
+      where: { publicId: req.params.publicId },
       data: { title, description, isPublished, schemaJson },
     });
-    if (form.userId !== req.user.userId) return res.status(403).json({ error: 'Unauthorized' });
     res.json(form);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-app.delete('/forms/:id', authMiddleware, async (req, res) => {
+app.delete('/forms/:publicId', authMiddleware, async (req, res) => {
   try {
-    const form = await prisma.form.findUnique({ where: { id: parseInt(req.params.id) } });
-    if (!form || form.userId !== req.user.userId) return res.status(404).json({ error: 'Not found' });
-    await prisma.form.delete({ where: { id: parseInt(req.params.id) } });
+    const form = await prisma.form.findUnique({
+      where: { publicId: req.params.publicId },
+      select: { userId: true }
+    });
+
+    if (!form || form.userId !== req.user.userId) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    await prisma.form.delete({ where: { publicId: req.params.publicId } });
     res.json({ message: 'Deleted' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
+// ====================== PUBLIC FORM ROUTES ======================
+
+app.get('/f/:publicId', async (req, res) => {
+  try {
+    const form = await prisma.form.findUnique({
+      where: { publicId: req.params.publicId },
+      select: { 
+        publicId: true,
+        title: true,
+        description: true,
+        schemaJson: true,
+        isPublished: true 
+      }
+    });
+
+    if (!form || !form.isPublished) {
+      return res.status(404).json({ error: 'Form not found or not published' });
+    }
+
+    res.json(form);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/f/:publicId/submit', async (req, res) => {
+  const { publicId } = req.params;
+  const { data } = req.body;
+
+  if (!data || typeof data !== 'object') {
+    return res.status(400).json({ error: 'Invalid submission data' });
+  }
+
+  try {
+    const form = await prisma.form.findUnique({
+      where: { publicId },
+      select: { id: true, isPublished: true, schemaJson: true }
+    });
+
+    if (!form || !form.isPublished) {
+      return res.status(404).json({ error: 'Form not found or not published' });
+    }
+
+    // Increment used count for every selected grid cell
+    const schemaJson = { ...form.schemaJson };
+    Object.keys(data).forEach(qId => {
+      const answer = data[qId];
+      if (Array.isArray(answer)) { // grid answer
+        answer.forEach(cellKey => {
+          const q = schemaJson.questions.find(q => q.id === qId);
+          if (q && q.type === 'grid' && q.cells[cellKey]) {
+            q.cells[cellKey].used = (q.cells[cellKey].used || 0) + 1;
+          }
+        });
+      }
+    });
+
+    // Save updated counts
+    await prisma.form.update({
+      where: { id: form.id },
+      data: { schemaJson }
+    });
+
+    await prisma.submission.create({
+      data: {
+        formId: form.id,
+        dataJson: data,
+        ip: req.ip || req.headers['x-forwarded-for'] || null
+      }
+    });
+
+    res.json({ success: true, message: 'Thank you!' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to save response' });
+  }
+});
+
+// ====================== START SERVER ======================
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Backend running on port ${PORT}`));

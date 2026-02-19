@@ -1,4 +1,3 @@
-// frontend/src/pages/Dashboard.jsx (updated with modal for create form)
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -33,23 +32,26 @@ function Dashboard() {
   };
 
   const handleCreate = async () => {
-    if (!newTitle) {
+    if (!newTitle.trim()) {
       alert('Title required');
       return;
     }
     try {
-      const res = await axios.post(`${import.meta.env.VITE_API_URL}/forms`, { title: newTitle }, { withCredentials: true });
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/forms`, { title: newTitle.trim() }, { withCredentials: true });
       setShowModal(false);
-      navigate(`/edit/${res.data.id}`);
+      navigate(`/edit/${res.data.publicId}`);
     } catch (err) {
-      alert('Error creating');
+      alert('Error creating form');
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('Delete?')) return;
+  const handleEdit = (publicId) => navigate(`/edit/${publicId}`);
+  const handlePreview = (publicId) => navigate(`/preview/${publicId}`);
+
+  const handleDelete = async (publicId) => {
+    if (!confirm('Delete this form?')) return;
     try {
-      await axios.delete(`${import.meta.env.VITE_API_URL}/forms/${id}`, { withCredentials: true });
+      await axios.delete(`${import.meta.env.VITE_API_URL}/forms/${publicId}`, { withCredentials: true });
       fetchForms();
     } catch (err) {
       alert('Error deleting');
@@ -61,33 +63,47 @@ function Dashboard() {
       await axios.put(`${import.meta.env.VITE_API_URL}/forms/${id}`, { isPublished: !current }, { withCredentials: true });
       fetchForms();
     } catch (err) {
-      alert('Error');
+      alert('Error updating publish status');
     }
   };
 
-  if (loading) return <p>Loading...</p>;
+  const copyShareLink = (publicId) => {
+    const link = `https://form.databooq.com/f/${publicId}`;
+    navigator.clipboard.writeText(link);
+    alert('Share link copied!\n\n' + link);
+  };
+
+  if (loading) return <p>Loading forms...</p>;
   if (error) return <p className="error">{error}</p>;
 
   return (
     <div className="dashboard">
       <div className="top-bar">
-        <button onClick={handleOpenModal}>Create Form</button>
+        <button onClick={handleOpenModal} className="create-btn">+ Create New Form</button>
       </div>
+
       <div className="dashboard-content">
-        {forms.length === 0 ? <p>No forms yet</p> : (
-          <div className="row">
+        {forms.length === 0 ? (
+          <p style={{ textAlign: 'center', padding: '3rem', color: '#666' }}>No forms yet. Create your first one!</p>
+        ) : (
+          <div className="form-grid">
             {forms.map(form => (
-              <div key={form.id} className="col-md-4 mb-4">
-                <div className="card" style={{ border: '1px solid #5c8df6', borderRadius: '8px' }}>
-                  <div className="card-body">
-                    <h5 className="card-title">{form.title}</h5>
-                    <p className="card-text">{form.isPublished ? 'Published' : 'Draft'}</p>
-                    <button onClick={() => navigate(`/edit/${form.id}`)}>Edit</button>
-                    <button onClick={() => handleTogglePublish(form.id, form.isPublished)}>
-                      {form.isPublished ? 'Unpublish' : 'Publish'}
-                    </button>
-                    <button onClick={() => handleDelete(form.id)}>Delete</button>
-                  </div>
+              <div key={form.id} className="form-card">
+                <h5 className="card-title">{form.title}</h5>
+                <p className={`status ${form.isPublished ? 'published' : 'draft'}`}>
+                  {form.isPublished ? 'Published' : 'Draft'}
+                </p>
+
+                <div className="card-actions">
+                    <button onClick={() => handleEdit(form.publicId)}>Edit</button>
+                    <button onClick={() => handlePreview(form.publicId)}>Preview</button>
+                    <button onClick={() => handleTogglePublish(form.publicId, form.isPublished)}>
+                    {form.isPublished ? 'Unpublish' : 'Publish'}
+                  </button>
+                  <button onClick={() => copyShareLink(form.publicId)} className="share-btn">
+                    🔗 Share
+                  </button>
+                  <button onClick={() => handleDelete(form.publicId)} className="delete-btn">Delete</button>
                 </div>
               </div>
             ))}
@@ -105,9 +121,10 @@ function Dashboard() {
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
               className="modal-input"
+              autoFocus
             />
             <div className="modal-buttons">
-              <button onClick={handleCreate} className="modal-create">Create</button>
+              <button onClick={handleCreate} className="modal-create">Create & Edit</button>
               <button onClick={() => setShowModal(false)} className="modal-cancel">Cancel</button>
             </div>
           </div>

@@ -7,6 +7,7 @@ import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import Edit from './pages/Edit';
 import Preview from './pages/Preview';
+import PublicForm from './pages/PublicForm';
 import NavBar from './components/NavBar';
 
 function AppContent() {
@@ -24,8 +25,9 @@ function AppContent() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/edit/:id" element={<Edit />} />
-          <Route path="/preview/:id" element={<Preview />} />
+          <Route path="/edit/:publicId" element={<Edit />} />
+          <Route path="/preview/:publicId" element={<Preview />} />
+          <Route path="/f/:publicId" element={<PublicForm />} />
         </Routes>
       </div>
     </div>

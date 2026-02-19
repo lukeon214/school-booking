@@ -7,36 +7,35 @@ datasource db {
 }
 
 model User {
-  id            Int      @id @default(autoincrement())
-  email         String   @unique
+  id            Int    @id @default(autoincrement())
+  email         String @unique
   passwordHash  String
   createdAt     DateTime @default(now())
   resetToken    String?
   resetTokenExpiry DateTime?
-
   forms         Form[]
 }
 
 model Form {
-  id            Int      @id @default(autoincrement())
-  userId        Int
-  title         String
-  description   String?
-  schemaJson    Json     @db.JsonB
-  slug          String?  @unique
-  isPublished   Boolean  @default(false)
-  createdAt     DateTime @default(now())
+  id           Int      @id @default(autoincrement())
+  publicId     String   @unique @default(cuid())   // ← NEW secure public ID
+  userId       Int
+  title        String
+  description  String?
+  schemaJson   Json     @db.JsonB
+  slug         String?  @unique
+  isPublished  Boolean  @default(false)
+  createdAt    DateTime @default(now())
 
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  submissions   Submission[]
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  submissions  Submission[]
 }
 
 model Submission {
-  id            Int      @id @default(autoincrement())
-  formId        Int
-  dataJson      Json     @db.JsonB
-  submittedAt   DateTime @default(now())
-  ip            String?
-
-  form          Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  id           Int      @id @default(autoincrement())
+  formId       Int
+  dataJson     Json     @db.JsonB
+  submittedAt  DateTime @default(now())
+  ip           String?
+  form         Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
 }
