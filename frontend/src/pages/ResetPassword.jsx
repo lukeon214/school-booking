@@ -23,7 +23,7 @@ function ResetPassword() {
 
   return (
     <div className="auth-page">
-      <form className="modern-form" onSubmit={handleSubmit}>
+      <form className="modern-form-bu" onSubmit={handleSubmit}>
         <div className="form-title">Reset Password</div>
 
         <div className="form-body">

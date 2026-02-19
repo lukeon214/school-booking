@@ -11,18 +11,18 @@ import NavBar from './components/NavBar';
 
 function AppContent() {
   const location = useLocation();
-  const showNavBar = location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/edit') || location.pathname.startsWith('/preview');
+  const showNavBar = location.pathname === '/dashboard';
 
   return (
     <div style={{ display: 'flex' }}>
       {showNavBar && <NavBar />}
-      <div style={{ flex: 1, marginLeft: showNavBar ? '200px' : '0' }}> {/* Offset content */}
+      <div style={{ flex: 1, marginLeft: showNavBar ? '200px' : '0' }}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password/:token" element={<ResetPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/edit/:id" element={<Edit />} />
           <Route path="/preview/:id" element={<Preview />} />
