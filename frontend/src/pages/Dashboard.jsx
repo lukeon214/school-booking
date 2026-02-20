@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../lib/axios';
 import { useNavigate } from 'react-router-dom';
 
 function Dashboard() {
@@ -16,7 +16,7 @@ function Dashboard() {
 
   const fetchForms = async () => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/forms`, { withCredentials: true });
+      const res = await api.get(`${import.meta.env.VITE_API_URL}/forms`, { withCredentials: true });
       setForms(res.data);
       setLoading(false);
     } catch (err) {
@@ -37,7 +37,7 @@ function Dashboard() {
       return;
     }
     try {
-      const res = await axios.post(`${import.meta.env.VITE_API_URL}/forms`, { title: newTitle.trim() }, { withCredentials: true });
+      const res = await api.post(`${import.meta.env.VITE_API_URL}/forms`, { title: newTitle.trim() }, { withCredentials: true });
       setShowModal(false);
       navigate(`/edit/${res.data.publicId}`);
     } catch (err) {
@@ -52,7 +52,7 @@ function Dashboard() {
   const handleDelete = async (publicId) => {
     if (!confirm('Delete this form?')) return;
     try {
-      await axios.delete(`${import.meta.env.VITE_API_URL}/forms/${publicId}`, { withCredentials: true });
+      await api.delete(`${import.meta.env.VITE_API_URL}/forms/${publicId}`, { withCredentials: true });
       fetchForms();
     } catch (err) {
       alert('Error deleting');
@@ -61,7 +61,7 @@ function Dashboard() {
 
   const handleTogglePublish = async (publicId, current) => {
     try {
-      await axios.put(`${import.meta.env.VITE_API_URL}/forms/${publicId}`, { isPublished: !current }, { withCredentials: true });
+      await api.put(`${import.meta.env.VITE_API_URL}/forms/${publicId}`, { isPublished: !current }, { withCredentials: true });
       fetchForms();
     } catch (err) {
       alert('Error updating publish status');

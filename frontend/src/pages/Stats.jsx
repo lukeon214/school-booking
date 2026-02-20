@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../lib/axios';
 import '../Stats.css';
 
 const API = 'https://api.databooq.com';
@@ -23,7 +23,7 @@ export default function Stats() {
 
   async function fetchData() {
     try {
-      const res = await axios.get(`${API}/forms/${publicId}/submissions`, {
+      const res = await api.get(`${API}/forms/${publicId}/submissions`, {
         withCredentials: true,
       });
       setForm(res.data.form);
@@ -91,7 +91,7 @@ export default function Stats() {
 
   async function deleteSubmission(id) {
     try {
-      await axios.delete(`${API}/forms/${publicId}/submissions/${id}`, {
+      await api.delete(`${API}/forms/${publicId}/submissions/${id}`, {
         withCredentials: true,
       });
       const updated = submissions.filter(s => s.id !== id);

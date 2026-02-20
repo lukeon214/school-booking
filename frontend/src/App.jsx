@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -13,7 +14,14 @@ import Stats from './pages/Stats';
 
 function AppContent() {
   const location = useLocation();
+  const navigate = useNavigate();
   const showNavBar = location.pathname === '/dashboard';
+
+  useEffect(() => {
+    if (location.pathname === '/login') {
+      localStorage.removeItem('redirectAfterLogin');
+    }
+  }, [location.pathname]);
 
   return (
     <div style={{ display: 'flex' }}>

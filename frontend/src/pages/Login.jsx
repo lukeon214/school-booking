@@ -16,11 +16,22 @@ function Login() {
       return;
     }
 
+    const redirectPath = localStorage.getItem('redirectAfterLogin');
+    localStorage.removeItem('redirectAfterLogin');
+
     try {
-      await axios.post(`${import.meta.env.VITE_API_URL}/login`, { email, password }, { withCredentials: true });
-      navigate('/dashboard');
+      await axios.post(`${import.meta.env.VITE_API_URL}/login`, { 
+        email, 
+        password 
+      }, { withCredentials: true });
+
+      if (redirectPath && redirectPath !== '/login') {
+        navigate(redirectPath);
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
-      setError(err.response?.data?.error || 'Error logging in');
+      setError(err.response?.data?.error || 'Invalid credentials');
     }
   };
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../lib/axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -23,7 +23,7 @@ function Edit() {
   const [lastSavedTime, setLastSavedTime] = useState(null);
 
   useEffect(() => {
-    axios.get(`${import.meta.env.VITE_API_URL}/forms/${publicId}`, { withCredentials: true })
+    api.get(`${import.meta.env.VITE_API_URL}/forms/${publicId}`, { withCredentials: true })
       .then(res => {
         setForm(res.data);
         setTitle(res.data.title);
@@ -246,7 +246,7 @@ function Edit() {
 
     setIsSaving(true);
     try {
-      await axios.put(`${import.meta.env.VITE_API_URL}/forms/${publicId}`, {
+      await api.put(`${import.meta.env.VITE_API_URL}/forms/${publicId}`, {
         title,
         description,
         isPublished: form.isPublished,
@@ -262,7 +262,7 @@ function Edit() {
 
   const handleSave = async (publish = false) => {
     try {
-      await axios.put(`${import.meta.env.VITE_API_URL}/forms/${publicId}`, {
+      await api.put(`${import.meta.env.VITE_API_URL}/forms/${publicId}`, {
         title,
         description,
         isPublished: form.isPublished = true,
@@ -277,7 +277,7 @@ function Edit() {
 
   const handleSavebtn = async (publish = false) => {
     try {
-      await axios.put(`${import.meta.env.VITE_API_URL}/forms/${publicId}`, {
+      await api.put(`${import.meta.env.VITE_API_URL}/forms/${publicId}`, {
         title,
         description,
         isPublished: form.isPublished,
