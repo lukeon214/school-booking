@@ -58,9 +58,9 @@ function Dashboard() {
     }
   };
 
-  const handleTogglePublish = async (id, current) => {
+  const handleTogglePublish = async (publicId, current) => {
     try {
-      await axios.put(`${import.meta.env.VITE_API_URL}/forms/${id}`, { isPublished: !current }, { withCredentials: true });
+      await axios.put(`${import.meta.env.VITE_API_URL}/forms/${publicId}`, { isPublished: !current }, { withCredentials: true });
       fetchForms();
     } catch (err) {
       alert('Error updating publish status');
@@ -84,29 +84,39 @@ function Dashboard() {
 
       <div className="dashboard-content">
         {forms.length === 0 ? (
-          <p style={{ textAlign: 'center', padding: '3rem', color: '#666' }}>No forms yet. Create your first one!</p>
+          <p className="empty-state">No forms yet. Create your first one!</p>
         ) : (
           <div className="form-grid">
-            {forms.map(form => (
-              <div key={form.id} className="form-card">
-                <h5 className="card-title">{form.title}</h5>
-                <p className={`status ${form.isPublished ? 'published' : 'draft'}`}>
-                  {form.isPublished ? 'Published' : 'Draft'}
-                </p>
+            {forms.map(form => {
+              const createdDate = new Date(form.createdAt).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+              });
 
-                <div className="card-actions">
-                    <button onClick={() => handleEdit(form.publicId)}>Edit</button>
-                    <button onClick={() => handlePreview(form.publicId)}>Preview</button>
-                    <button onClick={() => handleTogglePublish(form.publicId, form.isPublished)}>
-                    {form.isPublished ? 'Unpublish' : 'Publish'}
-                  </button>
-                  <button onClick={() => copyShareLink(form.publicId)} className="share-btn">
-                    🔗 Share
-                  </button>
-                  <button onClick={() => handleDelete(form.publicId)} className="delete-btn">Delete</button>
+              return (
+                <div key={form.id} className="form-card">
+                  <div className="card-header">
+                    <h5 className="card-title">{form.title}</h5>
+                    <span className={`status-badge ${form.isPublished ? 'published' : 'draft'}`}>
+                      {form.isPublished ? 'Published' : 'Draft'}
+                    </span>
+                  </div>
+
+                  <p className="card-date">Created {createdDate}</p>
+
+                  <div className="card-actions">
+                    <button onClick={() => handleEdit(form.publicId)} className="btn-primary">Edit</button>
+                    <button onClick={() => handlePreview(form.publicId)} className="btn-secondary">Preview</button>
+                    <button onClick={() => handleTogglePublish(form.publicId, form.isPublished)} className="btn-secondary">
+                      {form.isPublished ? 'Unpublish' : 'Publish'}
+                    </button>
+                    <button onClick={() => copyShareLink(form.publicId)} className="btn-secondary">Share</button>
+                    <button onClick={() => handleDelete(form.publicId)} className="btn-danger">Delete</button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

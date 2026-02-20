@@ -102,6 +102,7 @@ function PublicForm() {
       <main>
         <h1>{form.title}</h1>
         {form.description && <p className="description-top">{form.description}</p>}
+        <hr></hr>
 
         {form.schemaJson.questions.map((q, idx) => {
           const qId = q.id;
@@ -191,7 +192,7 @@ function PublicForm() {
                     className="input-field"
                     value={ans || ''}
                     onChange={e => updateAnswer(qId, e.target.value)}
-                    placeholder="https://example.com"
+                    placeholder="www.example.com"
                   />
                 )}
 

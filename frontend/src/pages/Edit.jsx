@@ -19,6 +19,8 @@ function Edit() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSavedTime, setLastSavedTime] = useState(null);
 
   useEffect(() => {
     axios.get(`${import.meta.env.VITE_API_URL}/forms/${publicId}`, { withCredentials: true })
@@ -35,6 +37,21 @@ function Edit() {
       });
   }, [publicId]);
 
+  useEffect(() => {
+    if (loading || !publicId) return;
+
+    const interval = setInterval(() => {
+      silentSave();
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [title, description, questions, publicId, form?.isPublished, loading]);
+  useEffect(() => {
+    return () => {
+      silentSave();
+    };
+  }, [title, description, questions]);
+
   const questionTypes = [
     { type: 'short_text', label: 'Short Text' },
     { type: 'long_text', label: 'Long Text' },
@@ -49,7 +66,7 @@ function Edit() {
     { type: 'url', label: 'URL' },
     { type: 'rating', label: 'Rating' },
     { type: 'yes_no', label: 'Yes/No' },
-    { type: 'grid', label: 'Grid / Matrix Table' },
+    { type: 'grid', label: 'Grid Table' },
   ];
 
   const addQuestion = (type) => {
@@ -224,17 +241,50 @@ function Edit() {
     }
   };
 
+  const silentSave = async () => {
+    if (!publicId) return;
+
+    setIsSaving(true);
+    try {
+      await axios.put(`${import.meta.env.VITE_API_URL}/forms/${publicId}`, {
+        title,
+        description,
+        isPublished: form.isPublished,
+        schemaJson: { questions },
+      }, { withCredentials: true });
+
+      setLastSavedTime(new Date());
+    } catch (err) {
+      console.error('Auto-save failed:', err);
+    }
+    setIsSaving(false);
+  };
+
   const handleSave = async (publish = false) => {
     try {
       await axios.put(`${import.meta.env.VITE_API_URL}/forms/${publicId}`, {
         title,
         description,
-        isPublished: publish ? true : form.isPublished,
+        isPublished: form.isPublished = true,
         schemaJson: { questions },
       }, { withCredentials: true });
-      alert('Saved!');
-      if (publish) alert('Published!');
-      navigate('/dashboard');
+
+      if (publish) navigate('/dashboard');
+    } catch (err) {
+      alert('Error saving');
+    }
+  };
+
+  const handleSavebtn = async (publish = false) => {
+    try {
+      await axios.put(`${import.meta.env.VITE_API_URL}/forms/${publicId}`, {
+        title,
+        description,
+        isPublished: form.isPublished,
+        schemaJson: { questions },
+      }, { withCredentials: true });
+
+      if (publish) navigate('/dashboard');
     } catch (err) {
       alert('Error saving');
     }
@@ -261,11 +311,50 @@ function Edit() {
       <div className="editor-container">
         <div className='top-bar-wrapper'>
           <div className="editor-top-bar">
-            <div className="tab-buttons">
-              <button onClick={() => setCurrentTab('edit')} className={currentTab === 'edit' ? 'active-tab' : ''}>Edit</button>
-              <button onClick={() => setCurrentTab('settings')} className={currentTab === 'settings' ? 'active-tab' : ''}>Form Settings</button>
-              <button onClick={() => setCurrentTab('deliver')} className={currentTab === 'deliver' ? 'active-tab' : ''}>Deliver</button>
+
+            <div className="breadcrumb">
+              <button 
+                onClick={() => navigate('/dashboard')} 
+                className="breadcrumb-link"
+              >
+                Dashboard
+              </button>
+              <span className="breadcrumb-separator">›</span>
+              <span className="breadcrumb-current">
+                 Edit
+              </span>
             </div>
+
+            <div className="tab-buttons">
+              <button 
+                onClick={() => setCurrentTab('edit')} 
+                className={currentTab === 'edit' ? 'active-tab' : ''}
+              >
+                Edit
+              </button>
+              <button 
+                onClick={() => setCurrentTab('settings')} 
+                className={currentTab === 'settings' ? 'active-tab' : ''}
+              >
+                Form Settings
+              </button>
+              <button 
+                onClick={() => setCurrentTab('deliver')} 
+                className={currentTab === 'deliver' ? 'active-tab' : ''}
+              >
+                Deliver
+              </button>
+            </div>
+
+            <div className="top-bar-right">
+              <div class="btn-container">
+                <button onClick={() => handleSavebtn(false)} className="save-draft-btn">
+                  <span class="text-save">Save</span>
+                  <span class="text-saved">Saved!</span>
+                </button>
+              </div>
+            </div>
+
           </div>
         </div>
 
@@ -419,7 +508,7 @@ function Edit() {
                           {selectedQuestion.type === 'time' && <input type="time" className="input-field" disabled />}
                           {selectedQuestion.type === 'email' && <input type="email" className="input-field" disabled placeholder="your@email.com" />}
                           {selectedQuestion.type === 'phone' && <input type="tel" className="input-field" disabled placeholder="+0 123 456 789" />}
-                          {selectedQuestion.type === 'url' && <input type="url" className="input-field" disabled placeholder="https://example.com" />}
+                          {selectedQuestion.type === 'url' && <input type="url" className="input-field" disabled placeholder="www.example.com" />}
                           {selectedQuestion.type === 'rating' && <div className="preview-rating">★★★★★</div>}
                           {(selectedQuestion.type === 'radio') && (
                             <div className="choice-options-edit">
@@ -554,7 +643,7 @@ function Edit() {
                 </div>
               ))}
             </div>
-            <button onClick={() => setShowAddModal(false)}>Cancel</button>
+            <button className='add-qustion-button-cancel' onClick={() => setShowAddModal(false)}>Cancel</button>
           </div>
         </div>
       )}
