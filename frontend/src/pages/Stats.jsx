@@ -64,23 +64,74 @@ export default function Stats() {
   function exportCSV() {
     if (!form) return;
     const questions = form.schemaJson.questions;
-    const headers = ['Response #', 'Submitted At', 'IP', ...questions.map(q => q.label)];
+
+    const columnDefs = [];
+
+    for (const q of questions) {
+      if (q.type === 'grid') {
+        for (const col of q.columns) {
+          columnDefs.push({
+            header: col.label,
+            getValue(dataJson) {
+              const selected = dataJson[q.id];
+              if (!Array.isArray(selected) || selected.length === 0) return '';
+              return q.rows
+                .map(row => {
+                  const key = `${row.id}-${col.id}`;
+                  if (!selected.includes(key)) return null;
+                  const cellText = q.cells?.[key]?.text;
+                  return cellText || null;
+                })
+                .filter(Boolean)
+                .join(', ');
+            }
+          });
+        }
+
+        for (const row of q.rows) {
+          columnDefs.push({
+            header: row.label,
+            getValue(dataJson) {
+              const selected = dataJson[q.id];
+              if (!Array.isArray(selected) || selected.length === 0) return '';
+              return q.columns
+                .map(col => {
+                  const key = `${row.id}-${col.id}`;
+                  if (!selected.includes(key)) return null;
+                  const cellText = q.cells?.[key]?.text;
+                  return cellText || null;
+                })
+                .filter(Boolean)
+                .join(', ');
+            }
+          });
+        }
+
+      } else {
+        columnDefs.push({
+          header: q.label,
+          getValue(dataJson) {
+            const val = dataJson[q.id];
+            if (val === undefined || val === null || val === '') return '';
+            if (Array.isArray(val)) return val.join(', ');
+            return String(val);
+          }
+        });
+      }
+    }
+
+    const headers = ['Response #', 'Submitted At', ...columnDefs.map(c => c.header)];
     const rows = submissions.map((s, i) => {
       const num = submissions.length - i;
       const date = new Date(s.submittedAt).toLocaleString();
-      const ip = s.ip || '';
-      const values = questions.map(q => {
-        const val = s.dataJson[q.id];
-        if (val === undefined || val === null || val === '') return '';
-        if (Array.isArray(val)) return val.join('; ');
-        return String(val);
-      });
-      return [num, date, ip, ...values];
+      const values = columnDefs.map(c => c.getValue(s.dataJson));
+      return [num, date, ...values];
     });
     const csv = [headers, ...rows]
       .map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
       .join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
+
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
