@@ -328,7 +328,7 @@ function PublicForm() {
                                     </div>
                                   )}
 
-                                  {selected && <span className="selection-checkbox">✓</span>}
+                                  {selected && <span className="selection-checkbox"></span>}
 
                                   {isFull && !isEditorDisabled && (
                                     <div className="full-overlay">Full</div>

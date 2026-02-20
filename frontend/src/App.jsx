@@ -9,6 +9,7 @@ import Edit from './pages/Edit';
 import Preview from './pages/Preview';
 import PublicForm from './pages/PublicForm';
 import NavBar from './components/NavBar';
+import Stats from './pages/Stats';
 
 function AppContent() {
   const location = useLocation();
@@ -28,6 +29,7 @@ function AppContent() {
           <Route path="/edit/:publicId" element={<Edit />} />
           <Route path="/preview/:publicId" element={<Preview />} />
           <Route path="/f/:publicId" element={<PublicForm />} />
+          <Route path="/stats/:publicId" element={<Stats />} />
         </Routes>
       </div>
     </div>

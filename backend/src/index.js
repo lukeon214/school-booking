@@ -271,6 +271,63 @@ app.delete('/forms/:publicId', authMiddleware, async (req, res) => {
   }
 });
 
+// ====================== STATS  ======================
+
+app.get('/forms/:publicId/submissions', authMiddleware, async (req, res) => {
+  try {
+    const form = await prisma.form.findUnique({
+      where: { publicId: req.params.publicId },
+      select: {
+        id: true,
+        publicId: true,
+        userId: true,
+        title: true,
+        description: true,
+        schemaJson: true,
+        createdAt: true
+      }
+    });
+
+    if (!form || form.userId !== req.user.userId) {
+      return res.status(404).json({ error: 'Form not found or access denied' });
+    }
+
+    const submissions = await prisma.submission.findMany({
+      where: { formId: form.id },
+      orderBy: { submittedAt: 'desc' },
+      select: {
+        id: true,
+        dataJson: true,
+        submittedAt: true
+      }
+    });
+
+    res.json({
+      form,
+      submissions,
+      totalSubmissions: submissions.length
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to load responses' });
+  }
+});
+
+app.delete('/forms/:publicId/submissions/:id', authMiddleware, async (req, res) => {
+  const form = await prisma.form.findUnique({
+    where: { publicId: req.params.publicId },
+    select: { id: true, userId: true }
+  });
+  if (!form || form.userId !== req.user.userId)
+    return res.status(404).json({ error: 'Not found' });
+
+  await prisma.submission.deleteMany({
+    where: { id: parseInt(req.params.id), formId: form.id }
+  });
+  res.json({ success: true });
+});
+
 // ====================== PUBLIC FORM ROUTES ======================
 
 app.get('/f/:publicId', async (req, res) => {

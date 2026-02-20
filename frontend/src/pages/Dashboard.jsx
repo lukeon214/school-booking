@@ -46,6 +46,7 @@ function Dashboard() {
   };
 
   const handleEdit = (publicId) => navigate(`/edit/${publicId}`);
+  const handleStats = (publicId) => navigate(`/stats/${publicId}`);
   const handlePreview = (publicId) => navigate(`/preview/${publicId}`);
 
   const handleDelete = async (publicId) => {
@@ -107,6 +108,7 @@ function Dashboard() {
 
                   <div className="card-actions">
                     <button onClick={() => handleEdit(form.publicId)} className="btn-primary">Edit</button>
+                    <button onClick={() => handleStats(form.publicId)} className="btn-primary">Stats</button>
                     <button onClick={() => handlePreview(form.publicId)} className="btn-secondary">Preview</button>
                     <button onClick={() => handleTogglePublish(form.publicId, form.isPublished)} className="btn-secondary">
                       {form.isPublished ? 'Unpublish' : 'Publish'}

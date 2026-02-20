@@ -1523,3 +1523,10 @@ hr {
 }
 
 /* Stats */
+.stat-card {
+  background: white;
+  padding: 2rem 1.5rem;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgb(80 120 200 / 7%);
+  text-align: center;
+}
