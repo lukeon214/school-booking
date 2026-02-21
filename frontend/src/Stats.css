@@ -245,7 +245,7 @@
   display: grid;
   grid-template-columns: 320px 1fr;
   gap: 0;
-  height: calc(100vh - 220px);  /* header + cards */
+  height: calc(100vh - 250px);
   margin: 0 2rem 2rem;
   border-radius: 16px;
   overflow: hidden;

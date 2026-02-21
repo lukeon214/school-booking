@@ -162,7 +162,16 @@ app.post('/reset-password/:token', async (req, res) => {
 });
 
 app.get('/me', authMiddleware, async (req, res) => {
-  res.json({ user: req.user });
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+      select: { id: true, email: true, createdAt: true }
+    });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json({ user });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 app.get('/forms', authMiddleware, async (req, res) => {
@@ -175,11 +184,33 @@ app.get('/forms', authMiddleware, async (req, res) => {
         publicId: true,
         title: true,
         description: true,
+        schemaJson: true,
         isPublished: true,
-        createdAt: true
+        createdAt: true,
+        _count: {
+          select: { submissions: true }
+        },
+        submissions: {
+          orderBy: { submittedAt: 'desc' },
+          take: 1,
+          select: { submittedAt: true }
+        }
       }
     });
-    res.json(forms);
+
+    const formatted = forms.map(f => ({
+      id:               f.id,
+      publicId:         f.publicId,
+      title:            f.title,
+      description:      f.description,
+      schemaJson:       f.schemaJson,
+      isPublished:      f.isPublished,
+      createdAt:        f.createdAt,
+      submissionCount:  f._count.submissions,
+      lastSubmittedAt:  f.submissions[0]?.submittedAt ?? null,
+    }));
+
+    res.json(formatted);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

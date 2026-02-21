@@ -26,7 +26,7 @@ function AppContent() {
   return (
     <div style={{ display: 'flex' }}>
       {showNavBar && <NavBar />}
-      <div style={{ flex: 1, marginLeft: showNavBar ? '200px' : '0' }}>
+      <div style={{ flex: 1, marginLeft: showNavBar ? '232px' : '0' }}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
