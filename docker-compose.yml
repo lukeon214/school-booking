@@ -5,8 +5,8 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_DB: formsdb
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: lukesupadupa
+      POSTGRES_PASSWORD: Undatra1!yep
     volumes:
       - pgdata:/var/lib/postgresql
     ports:
@@ -26,12 +26,9 @@ services:
       - "3001:3001"
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/formsdb
-      JWT_SECRET: supersecret123
+      JWT_SECRET: m8gzX6aujuRa8AvNN6fa805SkhXb8drdCILfhL
       PORT: 3001
-      SMTP_HOST: smtp.gmail.com
-      SMTP_PORT: 465
-      SMTP_USER: lukas.hajek777@gmail.com
-      SMTP_PASS: xupfhpkubcmxepvb
+      RESEND_API_KEY: re_GRWCXSNZ_14ZYiwxog1sRXXQxbvZv1Kzt
       APP_URL: https://form.databooq.com
     depends_on:
       postgres:
@@ -54,8 +51,8 @@ services:
     image: dpage/pgadmin4:latest
     restart: unless-stopped
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@admin.com
-      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_DEFAULT_EMAIL: luke@databooq.com
+      PGADMIN_DEFAULT_PASSWORD: Undatra1!
     ports:
       - "8080:80"
     volumes:

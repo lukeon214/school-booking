@@ -4,8 +4,11 @@ const cookieParser = require('cookie-parser');
 const { PrismaClient } = require('@prisma/client');
 const { PrismaPg } = require('@prisma/adapter-pg');
 const { Pool } = require('pg');
+const { Resend } = require('resend');
 const authMiddleware = require('./middleware/auth');
 require('dotenv').config();
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const app = express();
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -113,75 +116,149 @@ app.post('/forgot-password', async (req, res) => {
 
   try {
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) return res.status(400).json({ error: 'User not found' });
+    if (!user) {
+      return res.json({ message: 'If that email exists, a reset link has been sent.' });
+    }
 
     const jwt = require('jsonwebtoken');
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
     await prisma.user.update({
       where: { id: user.id },
-      data: { resetToken: token, resetTokenExpiry: new Date(Date.now() + 3600000) },
-    });
-
-    const nodemailer = require('nodemailer');
-    var transport = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: process.env.SMTP_PORT,
-      secure: true,  // false for Gmail 587
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
+      data: {
+        resetToken: token,
+        resetTokenExpiry: new Date(Date.now() + 3600000),
       },
-      tls: { rejectUnauthorized: false },
     });
 
-    await new Promise((resolve, reject) => {
-      transport.verify((error, success) => {
-        if (error) {
-          console.error('SMTP verify error:', error);
-          reject(error);
-        } else {
-          console.log('SMTP connection OK');
-          resolve(success);
-        }
-      });
-    });
+    const resetUrl = `${process.env.APP_URL}/reset-password/${token}`;
 
-    await transport.sendMail({
-      from: process.env.SMTP_USER,
+    await resend.emails.send({
+      from: 'databooq <noreply@form.databooq.com>',
       to: email,
-      subject: 'Password Reset',
-      html: `<p>Click <a href="${process.env.APP_URL}/reset-password/${token}">here</a> to reset your password.</p>`,
+      subject: 'Reset your databooq password',
+      html: `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          </head>
+          <body style="margin:0;padding:0;background:#f5f7fa;font-family:'Helvetica Neue',Arial,sans-serif;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f7fa;padding:40px 0;">
+              <tr>
+                <td align="center">
+                  <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
+
+                    <!-- Logo / header -->
+                    <tr>
+                      <td align="center" style="padding-bottom:28px;">
+                        <span style="font-size:1.6rem;font-weight:800;color:#2c3a75;letter-spacing:-0.5px;">
+                          data<span style="color:#4f7fff;">booq</span>
+                        </span>
+                      </td>
+                    </tr>
+
+                    <!-- Card -->
+                    <tr>
+                      <td style="background:#ffffff;border-radius:18px;padding:40px 48px;border:1px solid #e8edf9;box-shadow:0 4px 24px rgba(80,120,200,0.08);">
+
+                        <h1 style="margin:0 0 12px;font-size:1.5rem;font-weight:700;color:#2c3a75;">Reset your password</h1>
+                        <p style="margin:0 0 28px;font-size:0.97rem;color:#778bab;line-height:1.65;">
+                          We received a request to reset the password for your databooq account
+                          (<strong style="color:#465183;">${email}</strong>).
+                          Click the button below to choose a new password.
+                        </p>
+
+                        <!-- Button -->
+                        <table cellpadding="0" cellspacing="0" style="margin-bottom:28px; display: flex; justify-content: center;">
+                          <tr>
+                            <td style="background:#4f7fff;border-radius:10px;">
+                              <a href="${resetUrl}"
+                                style="display:inline-block;padding:14px 32px;font-size:1rem;font-weight:700;color:#ffffff;text-decoration:none;border-radius:10px;">
+                                Reset Password
+                              </a>
+                            </td>
+                          </tr>
+                        </table>
+
+                        <p style="margin:0 0 8px;font-size:0.85rem;color:#9aabcc;line-height:1.6;">
+                          This link expires in <strong>1 hour</strong>.
+                          If you didn't request a password reset, you can safely ignore this email —
+                          your password won't be changed.
+                        </p>
+
+                        <!-- Fallback URL -->
+                        <p style="margin:20px 0 0;font-size:0.78rem;color:#b0bdda;">
+                          If the button doesn't work, copy and paste this link:<br/>
+                          <a href="${resetUrl}" style="color:#4f7fff;word-break:break-all;">${resetUrl}</a>
+                        </p>
+
+                      </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                      <td align="center" style="padding-top:24px;">
+                        <p style="margin:0;font-size:0.78rem;color:#b0bdda;">
+                          © ${new Date().getFullYear()} databooq · You're receiving this because you have an account at
+                          <a href="https://form.databooq.com" style="color:#9aabcc;">form.databooq.com</a>
+                        </p>
+                      </td>
+                    </tr>
+
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </body>
+        </html>
+      `,
     });
 
-    res.json({ message: 'Reset link sent to email' });
+    res.json({ message: 'If that email exists, a reset link has been sent.' });
+
   } catch (error) {
     console.error('Forgot password error:', error);
-    res.status(500).json({ error: 'Error sending email' });
+    res.status(500).json({ error: 'Error sending reset email' });
   }
 });
 
 app.post('/reset-password/:token', async (req, res) => {
   const { token } = req.params;
   const { password } = req.body;
+
   if (!password) return res.status(400).json({ error: 'Password required' });
 
   try {
     const jwt = require('jsonwebtoken');
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
     const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
+
     if (!user || user.resetToken !== token || user.resetTokenExpiry < new Date()) {
-      return res.status(400).json({ error: 'Invalid or expired token' });
+      return res.status(400).json({ error: 'Invalid or expired reset link.' });
     }
 
     const bcrypt = require('bcryptjs');
     const passwordHash = await bcrypt.hash(password, 10);
+
     await prisma.user.update({
       where: { id: user.id },
-      data: { passwordHash, resetToken: null, resetTokenExpiry: null },
+      data: {
+        passwordHash,
+        resetToken: null,
+        resetTokenExpiry: null,
+      },
     });
 
     res.json({ message: 'Password reset successful' });
+
   } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      return res.status(400).json({ error: 'Reset link has expired. Please request a new one.' });
+    }
+    console.error('Reset password error:', error);
     res.status(500).json({ error: 'Error resetting password' });
   }
 });
