@@ -316,6 +316,7 @@ function PublicForm() {
                   {q.type === 'number' && (
                     <input
                       type="number"
+                      onWheel={(e) => e.target.blur()}
                       className="pf-input pf-input--sm"
                       value={ans || ''}
                       onChange={e => updateAnswer(qId, e.target.value)}
@@ -427,8 +428,8 @@ function PublicForm() {
                     </div>
                   )}
 
-                  {/* Radio / Checkbox */}
-                  {(q.type === 'radio' || q.type === 'checkbox') && (
+                  {/* Radio */}
+                  {(q.type === 'radio') && (
                     <div className="pf-choices">
                       {q.options.map((opt, i) => {
                         const isChecked = q.type === 'radio'
@@ -456,6 +457,42 @@ function PublicForm() {
                               }}
                             />
                             <span className="pf-choice-indicator" />
+                            <span className="pf-choice-label">{opt}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* checkbox */}
+                  {(q.type === 'checkbox') && (
+                    <div className="pf-choices">
+                      {q.options.map((opt, i) => {
+                        const isChecked = q.type === 'radio'
+                          ? ans === opt
+                          : (ans || []).includes(opt);
+                        return (
+                          <label
+                            key={i}
+                            className={`pf-choice ${isChecked ? 'pf-choice--selected' : ''}`}
+                          >
+                            <input
+                              type={q.type === 'radio' ? 'radio' : 'checkbox'}
+                              name={`choice-${qId}`}
+                              checked={isChecked}
+                              onChange={() => {
+                                if (q.type === 'radio') {
+                                  updateAnswer(qId, opt);
+                                } else {
+                                  const current = ans || [];
+                                  updateAnswer(qId, current.includes(opt)
+                                    ? current.filter(o => o !== opt)
+                                    : [...current, opt]
+                                  );
+                                }
+                              }}
+                            />
+                            <span className="pf-choice-indicator-check" />
                             <span className="pf-choice-label">{opt}</span>
                           </label>
                         );

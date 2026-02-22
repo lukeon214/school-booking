@@ -370,6 +370,13 @@
   box-shadow: 0 2px 10px rgb(79 127 255 / 25%);
 }
 
+.pf-yesno-btn--selected:hover {
+  background: #4f7fff;
+  border-color: #4f7fff;
+  color: white;
+  box-shadow: 0 2px 10px rgb(79 127 255 / 25%);
+}
+
 /* ── Radio / Checkbox choices ── */
 .pf-choices {
   display: flex;
@@ -430,6 +437,30 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
+  background: white;
+}
+
+.pf-choice-indicator-check {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #cfd9f4;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s, background 0.15s;
+  position: relative;
+}
+
+.pf-choice--selected .pf-choice-indicator-check {
+  border-color: #4f7fff;
+  background: #4f7fff;
+}
+
+.pf-choice--selected .pf-choice-indicator-check::after {
+  content: '';
+  width: 6px;
+  height: 6px;
   background: white;
 }
 
@@ -575,7 +606,6 @@
 
 .pf-submit-btn {
   width: 100%;
-  max-width: 400px;
   padding: 0.9rem;
   background: #4f7fff;
   color: white;
