@@ -4,15 +4,15 @@ services:
     image: postgres:18
     restart: unless-stopped
     environment:
-      POSTGRES_DB: formsdb
-      POSTGRES_USER: lukesupadupa
-      POSTGRES_PASSWORD: Undatra1!yep
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U lukedbuser"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -25,7 +25,7 @@ services:
     ports:
       - "3001:3001"
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/formsdb
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       JWT_SECRET: m8gzX6aujuRa8AvNN6fa805SkhXb8drdCILfhL
       PORT: 3001
       RESEND_API_KEY: re_GRWCXSNZ_14ZYiwxog1sRXXQxbvZv1Kzt
