@@ -1,0 +1,120 @@
+@import './PublicForm.css';
+
+/* ── Shell override ── */
+.pv-shell {
+  font-family: 'Poppins', Arial, sans-serif;
+  background: #f5f7fa;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.pv-shell--center {
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+/* ── Preview banner ── */
+.pv-banner {
+  height: 48px;
+  background: #4f7fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.2rem;
+  flex-shrink: 0;
+  gap: 1rem;
+}
+
+.pv-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: rgb(255 255 255 / 12%);
+  border: 1px solid rgb(255 255 255 / 20%);
+  color: white;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.38rem 0.85rem;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.pv-back-btn:hover {
+  background: rgb(255 255 255 / 22%);
+}
+
+.pv-banner-center {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: rgb(255 255 255 / 95%);
+  white-space: nowrap;
+}
+
+.pv-banner-icon {
+  display: flex;
+  align-items: center;
+  color: rgb(255 255 255 / 95%);
+}
+
+.pv-banner-right {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.pv-status-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.18rem 0.6rem;
+  border-radius: 20px;
+}
+
+.pv-status-badge--published {
+  background: #e7f9f0;
+  color: #1a7a4a;
+  border: 1.2px solid #b2f5d5;
+}
+
+.pv-status-badge--draft {
+  background: #fff8ec;
+  color: #a06000;
+  border: 1.2px solid #ffdea0;
+}
+
+/* ── Disabled submit ── */
+.pv-submit-disabled {
+  opacity: 0.38 !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* ── Back button inside error card ── */
+.pv-back-btn-inline {
+  margin-top: 1.2rem;
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #4f7fff;
+  cursor: pointer;
+  padding: 0;
+}
+
+.pv-back-btn-inline:hover { text-decoration: underline; }
+
+/* ── Responsive ── */
+@media (max-width: 500px) {
+  .pv-banner-center { display: none; }
+  .pv-banner { justify-content: space-between; }
+}

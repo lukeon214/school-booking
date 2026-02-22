@@ -79,7 +79,6 @@ function NavBar() {
       {/* Logo */}
       <div className="sidebar-logo">
         <Link to="/dashboard" className="sidebar-logo-link">
-          <span className="sidebar-logo-text"><span className="sidebar-logo-accent">form.</span></span>
           <span className="sidebar-logo-text">data<span className="sidebar-logo-accent">booq</span></span>
         </Link>
       </div>

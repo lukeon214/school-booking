@@ -459,9 +459,8 @@ function FormCard({ form, copiedId, formatDate, onEdit, onStats, onPreview, onDe
 
         <div className="dash-card-actions-secondary">
           <button className="dash-btn dash-btn--ghost" title="Preview" onClick={onPreview}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-              <circle cx="12" cy="12" r="3"/>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </button>
           <button
