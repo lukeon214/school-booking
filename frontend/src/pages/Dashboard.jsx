@@ -73,14 +73,19 @@ function Dashboard() {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = (publicId, title) => {
+    setDeleteConfirm({ publicId, title });
+  };
+
+  const confirmDelete = async () => {
     if (!deleteConfirm) return;
     try {
       await api.delete(`${import.meta.env.VITE_API_URL}/forms/${deleteConfirm.publicId}`, { withCredentials: true });
       setDeleteConfirm(null);
       fetchForms();
     } catch {
-      alert('Error deleting form.');
+      setDeleteConfirm(null);
+      setError('Error deleting form. Please try again.');
     }
   };
 
@@ -290,7 +295,7 @@ function Dashboard() {
               onEdit={() => navigate(`/edit/${form.publicId}`)}
               onStats={() => navigate(`/stats/${form.publicId}`)}
               onPreview={() => navigate(`/preview/${form.publicId}`)}
-              onDelete={() => setDeleteConfirm({ publicId: form.publicId, title: form.title })}
+              onDelete={() => handleDelete(form.publicId, form.title)}
               onTogglePublish={() => handleTogglePublish(form.publicId, form.isPublished)}
               onCopy={() => copyShareLink(form.publicId)}
             />
@@ -345,32 +350,22 @@ function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* ── Delete confirm modal ── */}
       {deleteConfirm && (
         <div className="dash-modal-overlay" onClick={() => setDeleteConfirm(null)}>
-          <div className="dash-modal" onClick={e => e.stopPropagation()}>
-            <div className="dash-modal-header">
-              <h3>Delete Form</h3>
-              <button className="dash-modal-close" onClick={() => setDeleteConfirm(null)}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-              </button>
+          <div className="dash-modal dash-modal--narrow" onClick={e => e.stopPropagation()}>
+            <div className="dash-modal-icon-danger">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#e53e3e" stroke-width="2"><polyline points="3,6 5,6 21,6"></polyline><path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a1,1,1,0,1,1-1h6a1,1,1,0,1,1,1v2"></path></svg>
             </div>
-            <div className="dash-modal-body">
-              <div className="dash-delete-modal-icon">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#e53e3e" strokeWidth="1.8">
-                  <polyline points="3,6 5,6 21,6"/>
-                  <path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a1,1,0,0,1,1-1h4a1,1,0,0,1,1,1v2"/>
-                </svg>
-              </div>
-              <p className="dash-delete-modal-text">
-                Are you sure you want to delete <strong>"{deleteConfirm.title}"</strong>?
-                This will permanently remove the form and all its submissions.
-              </p>
-            </div>
-            <div className="dash-modal-footer">
+            <h3 className="dash-modal-danger-title">Delete Form</h3>
+            <p className="dash-modal-danger-body">
+              Are you sure you want to delete <strong>"{deleteConfirm.title}"</strong>?
+              All submissions will be permanently lost. This cannot be undone.
+            </p>
+            <div className="dash-modal-footer-del">
               <button className="dash-modal-cancel" onClick={() => setDeleteConfirm(null)}>Cancel</button>
-              <button className="dash-delete-modal-confirm" onClick={handleDelete}>Delete</button>
+              <button className="dash-modal-delete" onClick={confirmDelete}>Delete</button>
             </div>
           </div>
         </div>
@@ -395,9 +390,9 @@ function FormCard({ form, copiedId, formatDate, onEdit, onStats, onPreview, onDe
       <div className="dash-card-top">
         <div className="dash-card-title-row">
           <h3 className="dash-card-title">{form.title}</h3>
-          <span className={`dash-badge ${form.isPublished ? 'dash-badge--published' : 'dash-badge--draft'}`}>
+          <span className={`dash-badge dash-badge--${form.status || (form.isPublished ? 'published' : 'draft')}`}>
             <span className="dash-badge-dot"></span>
-            {form.isPublished ? 'Published' : 'Draft'}
+            {(form.status || (form.isPublished ? 'published' : 'draft')) === 'closed' ? 'Closed' : form.isPublished ? 'Published' : 'Draft'}
           </span>
         </div>
         {form.description && (
@@ -505,7 +500,7 @@ function FormCard({ form, copiedId, formatDate, onEdit, onStats, onPreview, onDe
           <button className="dash-btn dash-btn--danger-ghost" title="Delete form" onClick={onDelete}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <polyline points="3,6 5,6 21,6"/>
-              <path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a1,1,0,0,1,1-1h4a1,1,0,0,1,1,1v2"/>
+              <path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a1,1,0,0,1,1-1h6a1,1,0,0,1,1,1v2"/>
             </svg>
           </button>
         </div>

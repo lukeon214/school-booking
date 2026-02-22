@@ -1,296 +1,271 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import api from '../lib/axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
+import '../Edit.css';
 
 const ITEM_TYPE = 'question';
 
+const TYPE_META = {
+  short_text:  { label: 'Short Text',       icon: '✏️' },
+  long_text:   { label: 'Long Text',         icon: '📝' },
+  number:      { label: 'Number',            icon: '#'  },
+  radio:       { label: 'Single Choice',     icon: '⊙'  },
+  checkbox:    { label: 'Multiple Choice',   icon: '☑'  },
+  select:      { label: 'Dropdown',          icon: '▾'  },
+  date:        { label: 'Date',              icon: '📅' },
+  time:        { label: 'Time',              icon: '🕐' },
+  email:       { label: 'Email',             icon: '@'  },
+  phone:       { label: 'Phone',             icon: '📞' },
+  url:         { label: 'URL',               icon: '🔗' },
+  rating:      { label: 'Rating',            icon: '⭐' },
+  yes_no:      { label: 'Yes / No',          icon: '✓✗' },
+  grid:        { label: 'Grid Table',        icon: '⊞'  },
+};
+
+// ─── Toggle Switch ───────────────────────────────────────────────────────────
+function Toggle({ checked, onChange, label }) {
+  return (
+    <label className="edit-toggle">
+      <span className="edit-toggle-label">{label}</span>
+      <span
+        className={`edit-toggle-track ${checked ? 'edit-toggle-track--on' : ''}`}
+        onClick={() => onChange(!checked)}
+      >
+        <span className="edit-toggle-thumb" />
+      </span>
+    </label>
+  );
+}
+
+// ─── Main Edit Component ─────────────────────────────────────────────────────
 function Edit() {
-  const {publicId} = useParams();
+  const { publicId } = useParams();
+  const navigate = useNavigate();
+
   const [form, setForm] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [closeDate, setCloseDate] = useState('');
+  const [maxTotalResponses, setMaxTotalResponses] = useState(0);
   const [selectedQuestionIndex, setSelectedQuestionIndex] = useState(null);
-  const [selectedCellKey, setSelectedCellKey] = useState(null); // for grid cell selection
+  const [selectedCellKey, setSelectedCellKey] = useState(null);
   const [currentTab, setCurrentTab] = useState('edit');
   const [showAddModal, setShowAddModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const navigate = useNavigate();
   const [isSaving, setIsSaving] = useState(false);
   const [lastSavedTime, setLastSavedTime] = useState(null);
+  const [saveError, setSaveError] = useState(false);
+
+  // Deliver tab state
+  const [isPublished, setIsPublished] = useState(false);
+  const [submissionCount, setSubmissionCount] = useState(0);
+  const [qrImage, setQrImage] = useState(null);
+  const [qrLoading, setQrLoading] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [embedCopied, setEmbedCopied] = useState(false);
+
+  const shareLink = `https://form.databooq.com/f/${publicId}`;
+  const embedCode = `<iframe src="${shareLink}" width="100%" height="600" frameborder="0"></iframe>`;
 
   useEffect(() => {
     api.get(`${import.meta.env.VITE_API_URL}/forms/${publicId}`, { withCredentials: true })
       .then(res => {
-        setForm(res.data);
-        setTitle(res.data.title);
-        setDescription(res.data.description || '');
-        setQuestions(res.data.schemaJson.questions || []);
+        const d = res.data;
+        setForm(d);
+        setTitle(d.title);
+        setDescription(d.description || '');
+        if (d.closeDate) {
+          const utc = new Date(d.closeDate);
+          const localISO = new Date(utc.getTime() - utc.getTimezoneOffset() * 60000)
+            .toISOString()
+            .slice(0, 16);
+          setCloseDate(localISO);
+        } else {
+          setCloseDate('');
+        }
+        setMaxTotalResponses(d.maxTotalResponses || 0);
+        setIsPublished(d.isPublished);
+        setQuestions(d.schemaJson.questions || []);
+        // fetch submission count for closed status computation
+        return api.get(`${import.meta.env.VITE_API_URL}/forms/${publicId}/submissions`, { withCredentials: true });
+      })
+      .then(res => {
+        setSubmissionCount(res.data.totalSubmissions || 0);
         setLoading(false);
       })
-      .catch(() => {
-        setError('Error loading form');
-        setLoading(false);
-      });
+      .catch(() => { setError('Error loading form'); setLoading(false); });
   }, [publicId]);
 
+  // Auto-save every 60 seconds
   useEffect(() => {
     if (loading || !publicId) return;
-
-    const interval = setInterval(() => {
-      silentSave();
-    }, 60000);
-
+    const interval = setInterval(() => silentSave(), 60000);
     return () => clearInterval(interval);
-  }, [title, description, questions, publicId, form?.isPublished, loading]);
-  useEffect(() => {
-    return () => {
-      silentSave();
-    };
-  }, [title, description, questions]);
+  }, [title, description, questions, publicId, loading, closeDate, maxTotalResponses]);
 
-  const questionTypes = [
-    { type: 'short_text', label: 'Short Text' },
-    { type: 'long_text', label: 'Long Text' },
-    { type: 'number', label: 'Number' },
-    { type: 'radio', label: 'Single Choice' },
-    { type: 'checkbox', label: 'Multiple Choice' },
-    { type: 'select', label: 'Dropdown' },
-    { type: 'date', label: 'Date' },
-    { type: 'time', label: 'Time' },
-    { type: 'email', label: 'Email' },
-    { type: 'phone', label: 'Phone' },
-    { type: 'url', label: 'URL' },
-    { type: 'rating', label: 'Rating' },
-    { type: 'yes_no', label: 'Yes/No' },
-    { type: 'grid', label: 'Grid Table' },
-  ];
+  // Convert datetime-local string (local time, no tz) to proper ISO string with offset
+  const toISOWithTZ = (dtLocal) => {
+    if (!dtLocal) return null;
+    // new Date(dtLocal) parses as LOCAL time in browsers, giving us the correct timestamp
+    return new Date(dtLocal).toISOString();
+  };
+
+  const silentSave = useCallback(async () => {
+    if (!publicId) return;
+    setIsSaving(true);
+    setSaveError(false);
+    try {
+      await api.put(`${import.meta.env.VITE_API_URL}/forms/${publicId}`, {
+        title,
+        description,
+        isPublished,
+        closeDate: toISOWithTZ(closeDate),
+        maxTotalResponses: parseInt(maxTotalResponses) || 0,
+        schemaJson: { questions },
+      }, { withCredentials: true });
+      setLastSavedTime(new Date());
+    } catch {
+      setSaveError(true);
+    }
+    setIsSaving(false);
+  }, [title, description, questions, publicId, isPublished, closeDate, maxTotalResponses]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    setSaveError(false);
+    try {
+      await api.put(`${import.meta.env.VITE_API_URL}/forms/${publicId}`, {
+        title,
+        description,
+        isPublished,
+        closeDate: toISOWithTZ(closeDate),
+        maxTotalResponses: parseInt(maxTotalResponses) || 0,
+        schemaJson: { questions },
+      }, { withCredentials: true });
+      setLastSavedTime(new Date());
+    } catch {
+      setSaveError(true);
+    }
+    setIsSaving(false);
+  };
+
+  const handleTogglePublish = async () => {
+    const next = !isPublished;
+    setIsPublished(next);
+    try {
+      await api.put(`${import.meta.env.VITE_API_URL}/forms/${publicId}`, {
+        title, description, isPublished: next,
+        closeDate: toISOWithTZ(closeDate),
+        maxTotalResponses: parseInt(maxTotalResponses) || 0,
+        schemaJson: { questions },
+      }, { withCredentials: true });
+      setLastSavedTime(new Date());
+    } catch {
+      setIsPublished(!next);
+      alert('Failed to update publish status.');
+    }
+  };
+
+  const handleGenerateQR = async () => {
+    setQrLoading(true);
+    setQrImage(null);
+    try {
+      const res = await api.post(
+        `${import.meta.env.VITE_API_URL}/forms/${publicId}/qr`,
+        { ecc: 'M' },
+        { withCredentials: true }
+      );
+      setQrImage(res.data.image);
+    } catch {
+      alert('Failed to generate QR code.');
+    }
+    setQrLoading(false);
+  };
+
+  const handleDownloadQR = () => {
+    if (!qrImage) return;
+    const a = document.createElement('a');
+    a.href = qrImage;
+    a.download = `${title.replace(/\s+/g, '-')}-qr.png`;
+    a.click();
+  };
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(shareLink);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+  };
+
+  const copyEmbed = () => {
+    navigator.clipboard.writeText(embedCode);
+    setEmbedCopied(true);
+    setTimeout(() => setEmbedCopied(false), 2000);
+  };
+
+  // ── Question helpers ──────────────────────────────────────────────────────
 
   const addQuestion = (type) => {
-    const newId = 'q' + (questions.length + 1);
+    const newId = 'q' + (Date.now());
     let newQuestion;
-
     if (type === 'grid') {
-      const rows = Array.from({ length: 4 }, (_, i) => ({
-        id: `r${i + 1}`,
-        label: ``,
-      }));
-      const columns = Array.from({ length: 3 }, (_, i) => ({
-        id: `c${i + 1}`,
-        label: ``,
-      }));
+      const rows = Array.from({ length: 4 }, (_, i) => ({ id: `r${i+1}`, label: '' }));
+      const columns = Array.from({ length: 3 }, (_, i) => ({ id: `c${i+1}`, label: '' }));
       const cells = {};
-      rows.forEach(row => {
-        columns.forEach(col => {
-          cells[`${row.id}-${col.id}`] = { text: '', max: 0, enabled: true, used: 0 };
-        });
-      });
-
-      newQuestion = {
-        id: newId,
-        label: '',
-        description: '',
-        type: 'grid',
-        required: false,
-        singlePerRow: false,
-        singlePerColumn: false,
-        rows,
-        columns,
-        cells,
-      };
+      rows.forEach(row => columns.forEach(col => {
+        cells[`${row.id}-${col.id}`] = { text: '', max: 0, enabled: true, used: 0 };
+      }));
+      newQuestion = { id: newId, label: '', description: '', type: 'grid', required: false, singlePerRow: false, singlePerColumn: false, rows, columns, cells };
     } else {
       newQuestion = {
-        id: newId,
-        label: '',
-        description: '',
-        type,
-        required: false,
-        maxResponses: 0,
-        options: type === 'yes_no' ? ['Yes', 'No'] : type === 'radio' || type === 'checkbox' || type === 'select' ? ['', ''] : [],
+        id: newId, label: '', description: '', type, required: false,
+        options: type === 'yes_no' ? ['Yes','No'] : (type === 'radio' || type === 'checkbox' || type === 'select') ? ['',''] : [],
       };
     }
-
-    setQuestions([...questions, newQuestion]);
+    setQuestions(prev => { const next = [...prev, newQuestion]; return next; });
     setSelectedQuestionIndex(questions.length);
     setSelectedCellKey(null);
     setShowAddModal(false);
   };
 
-  // ====================== GRID HELPERS ======================
   const getSelectedQuestion = () => questions[selectedQuestionIndex] || null;
 
-  const updateGridQuestion = (updater) => {
-    if (selectedQuestionIndex === null) return;
-    const updated = [...questions];
-    updated[selectedQuestionIndex] = updater(updated[selectedQuestionIndex]);
-    setQuestions(updated);
-  };
-
-  const addRow = () => {
-    updateGridQuestion(q => {
-      const newId = `r${q.rows.length + 1}`;
-      const newRow = { id: newId, label: `` };
-      const newCells = { ...q.cells };
-      q.columns.forEach(col => {
-        newCells[`${newId}-${col.id}`] = { text: '', max: 0, enabled: true, used: 0 };
-      });
-      return { ...q, rows: [...q.rows, newRow], cells: newCells };
-    });
-  };
-
-  const addColumn = () => {
-    updateGridQuestion(q => {
-      const newId = `c${q.columns.length + 1}`;
-      const newCol = { id: newId, label: `` };
-      const newCells = { ...q.cells };
-      q.rows.forEach(row => {
-        newCells[`${row.id}-${newId}`] = { text: '', max: 0, enabled: true, used: 0 };
-      });
-      return { ...q, columns: [...q.columns, newCol], cells: newCells };
-    });
-  };
-
-  const removeRow = (rowIndex) => {
-    updateGridQuestion(q => {
-      const rowId = q.rows[rowIndex].id;
-      const newRows = q.rows.filter((_, i) => i !== rowIndex);
-      const newCells = { ...q.cells };
-      Object.keys(newCells).forEach(k => {
-        if (k.startsWith(`${rowId}-`)) delete newCells[k];
-      });
-      return { ...q, rows: newRows, cells: newCells };
-    });
-    setSelectedCellKey(null);
-  };
-
-  const removeColumn = (colIndex) => {
-    updateGridQuestion(q => {
-      const colId = q.columns[colIndex].id;
-      const newCols = q.columns.filter((_, i) => i !== colIndex);
-      const newCells = { ...q.cells };
-      Object.keys(newCells).forEach(k => {
-        if (k.endsWith(`-${colId}`)) delete newCells[k];
-      });
-      return { ...q, columns: newCols, cells: newCells };
-    });
-    setSelectedCellKey(null);
-  };
-
-  const updateRowLabel = (rowIndex, value) => {
-    updateGridQuestion(q => {
-      const newRows = [...q.rows];
-      newRows[rowIndex].label = value;
-      return { ...q, rows: newRows };
-    });
-  };
-
-  const updateColumnLabel = (colIndex, value) => {
-    updateGridQuestion(q => {
-      const newCols = [...q.columns];
-      newCols[colIndex].label = value;
-      return { ...q, columns: newCols };
-    });
-  };
-
-  const updateCell = (cellKey, field, value) => {
-    updateGridQuestion(q => ({
-      ...q,
-      cells: { ...q.cells, [cellKey]: { ...q.cells[cellKey], [field]: value } }
-    }));
-  };
-
-  // ====================== OTHER HELPERS ======================
   const updateQuestion = (field, value) => {
     if (selectedQuestionIndex === null) return;
     const updated = [...questions];
-    updated[selectedQuestionIndex][field] = value;
+    updated[selectedQuestionIndex] = { ...updated[selectedQuestionIndex], [field]: value };
     setQuestions(updated);
   };
 
   const addOption = () => {
     if (selectedQuestionIndex === null) return;
     const updated = [...questions];
-    updated[selectedQuestionIndex].options.push('');
+    updated[selectedQuestionIndex].options = [...updated[selectedQuestionIndex].options, ''];
     setQuestions(updated);
   };
 
-  const updateOption = (optIndex, value) => {
+  const updateOption = (i, value) => {
     if (selectedQuestionIndex === null) return;
     const updated = [...questions];
-    updated[selectedQuestionIndex].options[optIndex] = value;
+    updated[selectedQuestionIndex].options[i] = value;
     setQuestions(updated);
   };
 
-  const removeOption = (optIndex) => {
+  const removeOption = (i) => {
     if (selectedQuestionIndex === null) return;
     const updated = [...questions];
-    updated[selectedQuestionIndex].options.splice(optIndex, 1);
+    updated[selectedQuestionIndex].options.splice(i, 1);
     setQuestions(updated);
   };
 
   const removeQuestion = (index) => {
     setQuestions(questions.filter((_, i) => i !== index));
-    if (selectedQuestionIndex === index) {
-      setSelectedQuestionIndex(null);
-      setSelectedCellKey(null);
-    } else if (selectedQuestionIndex > index) {
-      setSelectedQuestionIndex(selectedQuestionIndex - 1);
-    }
+    if (selectedQuestionIndex === index) { setSelectedQuestionIndex(null); setSelectedCellKey(null); }
+    else if (selectedQuestionIndex > index) setSelectedQuestionIndex(selectedQuestionIndex - 1);
   };
-
-  const silentSave = async () => {
-    if (!publicId) return;
-
-    setIsSaving(true);
-    try {
-      await api.put(`${import.meta.env.VITE_API_URL}/forms/${publicId}`, {
-        title,
-        description,
-        isPublished: form.isPublished,
-        schemaJson: { questions },
-      }, { withCredentials: true });
-
-      setLastSavedTime(new Date());
-    } catch (err) {
-      console.error('Auto-save failed:', err);
-    }
-    setIsSaving(false);
-  };
-
-  const handleSave = async (publish = false) => {
-    try {
-      await api.put(`${import.meta.env.VITE_API_URL}/forms/${publicId}`, {
-        title,
-        description,
-        isPublished: form.isPublished = true,
-        schemaJson: { questions },
-      }, { withCredentials: true });
-
-      if (publish) navigate('/dashboard');
-    } catch (err) {
-      alert('Error saving');
-    }
-  };
-
-  const handleSavebtn = async (publish = false) => {
-    try {
-      await api.put(`${import.meta.env.VITE_API_URL}/forms/${publicId}`, {
-        title,
-        description,
-        isPublished: form.isPublished,
-        schemaJson: { questions },
-      }, { withCredentials: true });
-
-      if (publish) navigate('/dashboard');
-    } catch (err) {
-      alert('Error saving');
-    }
-  };
-
-  const handlePreview = () => navigate(`/preview/${publicId}`);
 
   const moveQuestion = (dragIndex, hoverIndex) => {
     const updated = [...questions];
@@ -300,188 +275,245 @@ function Edit() {
     if (selectedQuestionIndex === dragIndex) setSelectedQuestionIndex(hoverIndex);
   };
 
-  if (loading) return <p>Loading...</p>;
-  if (error) return <p className="error">{error}</p>;
+  // ── Grid helpers ──────────────────────────────────────────────────────────
+  const updateGridQuestion = (updater) => {
+    if (selectedQuestionIndex === null) return;
+    const updated = [...questions];
+    updated[selectedQuestionIndex] = updater(updated[selectedQuestionIndex]);
+    setQuestions(updated);
+  };
+
+  const addRow = () => updateGridQuestion(q => {
+    const newId = `r${q.rows.length + 1}`;
+    const newCells = { ...q.cells };
+    q.columns.forEach(col => { newCells[`${newId}-${col.id}`] = { text: '', max: 0, enabled: true, used: 0 }; });
+    return { ...q, rows: [...q.rows, { id: newId, label: '' }], cells: newCells };
+  });
+
+  const addColumn = () => updateGridQuestion(q => {
+    const newId = `c${q.columns.length + 1}`;
+    const newCells = { ...q.cells };
+    q.rows.forEach(row => { newCells[`${row.id}-${newId}`] = { text: '', max: 0, enabled: true, used: 0 }; });
+    return { ...q, columns: [...q.columns, { id: newId, label: '' }], cells: newCells };
+  });
+
+  const removeRow = (rowIndex) => updateGridQuestion(q => {
+    const rowId = q.rows[rowIndex].id;
+    const newCells = { ...q.cells };
+    Object.keys(newCells).forEach(k => { if (k.startsWith(`${rowId}-`)) delete newCells[k]; });
+    return { ...q, rows: q.rows.filter((_, i) => i !== rowIndex), cells: newCells };
+  });
+
+  const removeColumn = (colIndex) => updateGridQuestion(q => {
+    const colId = q.columns[colIndex].id;
+    const newCells = { ...q.cells };
+    Object.keys(newCells).forEach(k => { if (k.endsWith(`-${colId}`)) delete newCells[k]; });
+    return { ...q, columns: q.columns.filter((_, i) => i !== colIndex), cells: newCells };
+  });
+
+  const updateRowLabel = (rowIndex, value) => updateGridQuestion(q => {
+    const newRows = [...q.rows]; newRows[rowIndex] = { ...newRows[rowIndex], label: value };
+    return { ...q, rows: newRows };
+  });
+
+  const updateColumnLabel = (colIndex, value) => updateGridQuestion(q => {
+    const newCols = [...q.columns]; newCols[colIndex] = { ...newCols[colIndex], label: value };
+    return { ...q, columns: newCols };
+  });
+
+  const updateCell = (cellKey, field, value) => updateGridQuestion(q => ({
+    ...q, cells: { ...q.cells, [cellKey]: { ...q.cells[cellKey], [field]: value } }
+  }));
+
+  // ── Save indicator text ───────────────────────────────────────────────────
+  function saveStatus() {
+    if (saveError) return { text: 'Save failed', cls: 'edit-save-status--error' };
+    if (isSaving) return { text: 'Saving…', cls: 'edit-save-status--saving' };
+    if (lastSavedTime) {
+      const diff = Math.floor((Date.now() - lastSavedTime) / 1000);
+      const label = diff < 10 ? 'Saved just now' : diff < 60 ? `Saved ${diff}s ago` : `Saved ${Math.floor(diff/60)}m ago`;
+      return { text: label, cls: 'edit-save-status--ok' };
+    }
+    return null;
+  }
+
+  if (loading) return (
+    <div className="edit-loading">
+      <div className="edit-spinner" />
+      <p>Loading form…</p>
+    </div>
+  );
+  if (error) return <div className="edit-error-page">{error}</div>;
 
   const selectedQuestion = getSelectedQuestion();
   const isGrid = selectedQuestion?.type === 'grid';
+  const status = saveStatus();
+
+  // Derived form status
+  const isClosed = isPublished && (
+    (closeDate && new Date() > new Date(closeDate)) ||
+    (maxTotalResponses > 0 && submissionCount >= Number(maxTotalResponses))
+  );
+  const formStatus = !isPublished ? 'draft' : isClosed ? 'closed' : 'published';
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <div className="editor-container">
-        <div className='top-bar-wrapper'>
-          <div className="editor-top-bar">
+      <div className="edit-page-shell">
 
-            <div className="breadcrumb">
-              <button 
-                onClick={() => navigate('/dashboard')} 
-                className="breadcrumb-link"
-              >
-                Dashboard
-              </button>
-              <span className="breadcrumb-separator">›</span>
-              <span className="breadcrumb-current">
-                 Edit
+        {/* ── Top bar ── */}
+        <header className="edit-topbar">
+          <div className="edit-topbar-left">
+            <button className="edit-back-btn" onClick={() => navigate('/dashboard')}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M19 12H5M12 5l-7 7 7 7"/>
+              </svg>
+            </button>
+            <div className="edit-topbar-title-group">
+              <span className="edit-topbar-formname">{title || 'Untitled Form'}</span>
+              <span className={`edit-topbar-badge edit-topbar-badge--${formStatus}`}>
+                {formStatus === 'published' ? 'Published' : formStatus === 'closed' ? 'Closed' : 'Draft'}
               </span>
             </div>
-
-            <div className="tab-buttons">
-              <button 
-                onClick={() => setCurrentTab('edit')} 
-                className={currentTab === 'edit' ? 'active-tab' : ''}
-              >
-                Edit
-              </button>
-              <button 
-                onClick={() => setCurrentTab('settings')} 
-                className={currentTab === 'settings' ? 'active-tab' : ''}
-              >
-                Form Settings
-              </button>
-              <button 
-                onClick={() => setCurrentTab('deliver')} 
-                className={currentTab === 'deliver' ? 'active-tab' : ''}
-              >
-                Deliver
-              </button>
-            </div>
-
-            <div className="top-bar-right">
-              <div class="btn-container">
-                <button onClick={() => handleSavebtn(false)} className="save-draft-btn">
-                  <span class="text-save">Save</span>
-                  <span class="text-saved">Saved!</span>
-                </button>
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-        <div className="editor-main">
-          <div className="editor-left-sidebar">
-            <div className='left-nav-button'>
-              <h3
-                style={{
-                  fontSize: '1.08rem',
-                  marginBottom: '1rem',
-                  color: '#27469d',
-                  fontWeight: '700' }}
-              >
-                Questions
-              </h3>
-              <button className='add-qustion-button' onClick={() => setShowAddModal(true)}>+ Add Question</button>
-            </div>
-            <hr />
-            <div className="questions-list">
-              {questions.map((q, index) => (
-                <QuestionCard
-                  key={q.id}
-                  question={q}
-                  index={index}
-                  isSelected={index === selectedQuestionIndex}
-                  onSelect={() => { setSelectedQuestionIndex(index); setSelectedCellKey(null); }}
-                  moveQuestion={moveQuestion}
-                  onDelete={() => removeQuestion(index)}
-                />
-              ))}
-            </div>
           </div>
 
-          <div className="editor-middle">
+          <nav className="edit-tabs">
+            {['edit','settings','deliver'].map(tab => (
+              <button
+                key={tab}
+                className={`edit-tab ${currentTab === tab ? 'edit-tab--active' : ''}`}
+                onClick={() => setCurrentTab(tab)}
+              >
+                {tab === 'edit' ? 'Edit' : tab === 'settings' ? 'Settings' : 'Deliver'}
+              </button>
+            ))}
+          </nav>
+
+          <div className="edit-topbar-right">
+            {status && (
+              <span className={`edit-save-status ${status.cls}`}>
+                {isSaving && <span className="edit-save-spinner" />}
+                {status.text}
+              </span>
+            )}
+            <button className="edit-preview-btn" onClick={() => navigate(`/preview/${publicId}`)}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+              Preview
+            </button>
+            <button className="edit-save-btn" onClick={handleSave} disabled={isSaving}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+                <polyline points="17,21 17,13 7,13 7,21"/>
+                <polyline points="7,3 7,8 15,8"/>
+              </svg>
+              Save
+            </button>
+          </div>
+        </header>
+
+        <div className="edit-body">
+
+          {/* ── Left sidebar ── */}
+          <aside className="edit-left">
+            <div className="edit-left-header">
+              <span className="edit-left-title">Questions</span>
+              <span className="edit-left-count">{questions.length}</span>
+            </div>
+            <button className="edit-add-btn" onClick={() => setShowAddModal(true)}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Add Question
+            </button>
+
+            <div className="edit-question-list">
+              {questions.length === 0 ? (
+                <div className="edit-left-empty">
+                  <p>No questions yet.<br/>Click "Add Question" to start.</p>
+                </div>
+              ) : (
+                questions.map((q, index) => (
+                  <QuestionCard
+                    key={q.id}
+                    question={q}
+                    index={index}
+                    isSelected={index === selectedQuestionIndex}
+                    onSelect={() => { setSelectedQuestionIndex(index); setSelectedCellKey(null); }}
+                    moveQuestion={moveQuestion}
+                    onDelete={() => removeQuestion(index)}
+                  />
+                ))
+              )}
+            </div>
+          </aside>
+
+          {/* ── Middle canvas ── */}
+          <main className="edit-canvas">
+
+            {/* EDIT TAB */}
             {currentTab === 'edit' && (
-              <div className="centered-content">
-                {selectedQuestion ? (
-                  <div className="modern-form">
-                    <div className="question-number">{selectedQuestionIndex + 1} →</div>
-                    <input
-                      className="question-label"
-                      value={selectedQuestion.label}
-                      onChange={(e) => updateQuestion('label', e.target.value)}
-                      placeholder="Your question here."
-                    />
-                    <input
-                      className="question-description"
-                      value={selectedQuestion.description || ''}
-                      onChange={(e) => updateQuestion('description', e.target.value)}
-                      placeholder="Description (optional)"
-                    />
+              selectedQuestion ? (
+                <div className="edit-form-card">
+                  <div className="edit-q-meta">
+                    <span className="edit-q-num">Q{selectedQuestionIndex + 1}</span>
+                    <span className="edit-q-type-badge">
+                      {TYPE_META[selectedQuestion.type]?.icon} {TYPE_META[selectedQuestion.type]?.label}
+                    </span>
+                  </div>
 
-                    <div className="answer-area">
+                  <input
+                    className="edit-q-label"
+                    value={selectedQuestion.label}
+                    onChange={e => updateQuestion('label', e.target.value)}
+                    placeholder="Your question here…"
+                  />
+                  <input
+                    className="edit-q-desc"
+                    value={selectedQuestion.description || ''}
+                    onChange={e => updateQuestion('description', e.target.value)}
+                    placeholder="Description (optional)"
+                  />
+
+                  <div className="edit-answer-area">
                     {isGrid ? (
                       <div className="matrix-grid-wrapper">
                         <table className="matrix-grid">
                           <thead>
                             <tr>
-                              <th></th>
-                              {selectedQuestion.columns.map((col, colIndex) => (
+                              <th className="matrix-corner"></th>
+                              {selectedQuestion.columns.map((col, ci) => (
                                 <th key={col.id}>
-                                  <input
-                                    className="header-input"
-                                    value={col.label}
-                                    onChange={(e) => updateColumnLabel(colIndex, e.target.value)}
-                                    placeholder="Column label"
-                                  />
-                                  <button
-                                    className="remove-header-btn"
-                                    onClick={() => removeColumn(colIndex)}
-                                  >×</button>
+                                  <input className="header-input" value={col.label} onChange={e => updateColumnLabel(ci, e.target.value)} placeholder="Column…" />
+                                  <button className="remove-header-btn" onClick={() => removeColumn(ci)}>×</button>
                                 </th>
                               ))}
                             </tr>
                           </thead>
                           <tbody>
-                            {selectedQuestion.rows.map((row, rowIndex) => (
+                            {selectedQuestion.rows.map((row, ri) => (
                               <tr key={row.id}>
                                 <td className="row-label-cell">
-                                  <input
-                                    className="header-input"
-                                    value={row.label}
-                                    onChange={(e) => updateRowLabel(rowIndex, e.target.value)}
-                                    placeholder="Row label"
-                                  />
-                                  <button
-                                    className="remove-header-btn"
-                                    onClick={() => removeRow(rowIndex)}
-                                  >×</button>
+                                  <input className="header-input" value={row.label} onChange={e => updateRowLabel(ri, e.target.value)} placeholder="Row…" />
+                                  <button className="remove-header-btn" onClick={() => removeRow(ri)}>×</button>
                                 </td>
-                                {selectedQuestion.columns.map((col) => {
+                                {selectedQuestion.columns.map(col => {
                                   const cellKey = `${row.id}-${col.id}`;
                                   const cell = selectedQuestion.cells[cellKey] || { text: '', max: 0, enabled: true };
-                                  const isSelected = selectedCellKey === cellKey;
-
+                                  const isSel = selectedCellKey === cellKey;
                                   return (
-                                    <td
-                                      key={col.id}
-                                      className={`matrix-cell ${isSelected ? 'selected' : ''} ${!cell.enabled ? 'disabled' : ''}`}
-                                      onClick={() => setSelectedCellKey(cellKey)}
-                                    >
+                                    <td key={col.id} className={`matrix-cell ${isSel ? 'selected' : ''} ${!cell.enabled ? 'disabled' : ''}`} onClick={() => setSelectedCellKey(cellKey)}>
                                       <div className="cell-content">
-                                        <textarea
-                                          className="cell-text-input"
-                                          value={cell.text}
-                                          onChange={(e) => updateCell(cellKey, 'text', e.target.value)}
-                                          placeholder=""
-                                        />
+                                        <textarea className="cell-text-input" value={cell.text} onChange={e => updateCell(cellKey, 'text', e.target.value)} placeholder="Text…" />
                                         <div className="cell-controls">
                                           <div className="cell-max">
-                                            Max: 
-                                            <input
-                                              type="number"
-                                              min="0"
-                                              className="cell-max-input"
-                                              value={cell.max || ''}
-                                              onChange={(e) => updateCell(cellKey, 'max', parseInt(e.target.value) || 0)}
-                                              placeholder="∞"
-                                            />
+                                            Max:
+                                            <input type="number" min="0" className="cell-max-input" value={cell.max || ''} onChange={e => updateCell(cellKey, 'max', parseInt(e.target.value) || 0)} placeholder="∞" />
                                           </div>
                                           <label className="cell-toggle">
-                                            <input
-                                              type="checkbox"
-                                              checked={cell.enabled}
-                                              onChange={(e) => updateCell(cellKey, 'enabled', e.target.checked)}
-                                            />
-                                            Enabled
+                                            <input type="checkbox" checked={cell.enabled} onChange={e => updateCell(cellKey, 'enabled', e.target.checked)} />
+                                            On
                                           </label>
                                         </div>
                                       </div>
@@ -492,158 +524,324 @@ function Edit() {
                             ))}
                           </tbody>
                         </table>
-
-                        {/* + Row and + Column buttons now under the entire grid */}
                         <div className="grid-action-buttons">
-                          <button className="add-header-btn" onClick={addRow}>+ Add Row</button>
-                          <button className="add-header-btn" onClick={addColumn}>+ Add Column</button>
+                          <button className="add-header-btn" onClick={addRow}>+ Row</button>
+                          <button className="add-header-btn" onClick={addColumn}>+ Column</button>
                         </div>
                       </div>
                     ) : (
-                        <>
-                          {selectedQuestion.type === 'short_text' && <input className="input-field" disabled placeholder="Type your answer here..." />}
-                          {selectedQuestion.type === 'long_text' && <textarea className="input-field" disabled placeholder="Type your answer here..." />}
-                          {selectedQuestion.type === 'number' && <input type="number" className="input-field" disabled placeholder="Enter a number..." />}
-                          {selectedQuestion.type === 'date' && <input type="date" className="input-field" disabled />}
-                          {selectedQuestion.type === 'time' && <input type="time" className="input-field" disabled />}
-                          {selectedQuestion.type === 'email' && <input type="email" className="input-field" disabled placeholder="your@email.com" />}
-                          {selectedQuestion.type === 'phone' && <input type="tel" className="input-field" disabled placeholder="+0 123 456 789" />}
-                          {selectedQuestion.type === 'url' && <input type="url" className="input-field" disabled placeholder="www.example.com" />}
-                          {selectedQuestion.type === 'rating' && <div className="preview-rating">★★★★★</div>}
-                          {(selectedQuestion.type === 'radio') && (
-                            <div className="choice-options-edit">
-                              {selectedQuestion.options.map((opt, i) => (
-                                <label key={i}>
-                                  <input placeholder='option...' className='option-input' value={opt} onChange={(e) => updateOption(i, e.target.value)} />
-                                  <button onClick={() => removeOption(i)} className="remove-option">×</button>
-                                </label>
-                              ))}
-                              <button onClick={addOption} className="add-choice"><span style={{fontSize: '1.2em', marginRight: '7px'}}>+</span>Add option</button>
-                            </div>
-                          )}
-                          {(selectedQuestion.type === 'yes_no') && (
-                            <div className="choice-options-yes-no">
-                              <button className='button-yes-no' disabled>Yes</button><button className='button-yes-no' disabled>No</button>
-                            </div>
-                          )}
-                          {selectedQuestion.type === 'checkbox' && (
-                            <div className="choice-options-edit">
-                              {selectedQuestion.options.map((opt, i) => (
-                                <label key={i}>
-                                  <input placeholder='multiple option...' className='option-input' value={opt} onChange={(e) => updateOption(i, e.target.value)} />
-                                  <button onClick={() => removeOption(i)} className="remove-option">×</button>
-                                </label>
-                              ))}
-                              <button onClick={addOption} className="add-choice">+ Add choice</button>
-                            </div>
-                          )}
-                          {selectedQuestion.type === 'select' && (
-                            <div className="choice-options-edit">
-                              {selectedQuestion.options.map((opt, i) => (
-                                <label key={i}>
-                                  <input placeholder='select option...' className='option-input' value={opt} onChange={(e) => updateOption(i, e.target.value)} />
-                                  <button onClick={() => removeOption(i)} className="remove-option">×</button>
-                                </label>
-                              ))}
-                              <button onClick={addOption} className="add-choice">+ Add choice</button>
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
+                      <>
+                        {selectedQuestion.type === 'short_text' && <input className="edit-preview-input" disabled placeholder="Short answer…" />}
+                        {selectedQuestion.type === 'long_text' && <textarea className="edit-preview-input edit-preview-textarea" disabled placeholder="Long answer…" />}
+                        {selectedQuestion.type === 'number' && <input type="number" className="edit-preview-input" disabled placeholder="0" />}
+                        {selectedQuestion.type === 'date' && <input type="date" className="edit-preview-input" disabled />}
+                        {selectedQuestion.type === 'time' && <input type="time" className="edit-preview-input" disabled />}
+                        {selectedQuestion.type === 'email' && <input type="email" className="edit-preview-input" disabled placeholder="your@email.com" />}
+                        {selectedQuestion.type === 'phone' && <input type="tel" className="edit-preview-input" disabled placeholder="+1 234 567 8900" />}
+                        {selectedQuestion.type === 'url' && <input type="url" className="edit-preview-input" disabled placeholder="https://example.com" />}
+                        {selectedQuestion.type === 'rating' && (
+                          <div className="edit-preview-rating">
+                            {[1,2,3,4,5].map(i => <span key={i} className="edit-star">★</span>)}
+                          </div>
+                        )}
+                        {selectedQuestion.type === 'yes_no' && (
+                          <div className="edit-yesno">
+                            <button className="edit-yesno-btn" disabled>✓ Yes</button>
+                            <button className="edit-yesno-btn" disabled>✗ No</button>
+                          </div>
+                        )}
+                        {(selectedQuestion.type === 'radio' || selectedQuestion.type === 'checkbox' || selectedQuestion.type === 'select') && (
+                          <div className="edit-options">
+                            {selectedQuestion.options.map((opt, i) => (
+                              <div key={i} className="edit-option-row">
+                                <span className="edit-option-bullet">
+                                  {selectedQuestion.type === 'radio' ? '◯' : selectedQuestion.type === 'checkbox' ? '☐' : `${i+1}.`}
+                                </span>
+                                <input
+                                  className="edit-option-input"
+                                  value={opt}
+                                  onChange={e => updateOption(i, e.target.value)}
+                                  placeholder={`Option ${i + 1}`}
+                                />
+                                <button className="edit-option-remove" onClick={() => removeOption(i)}>×</button>
+                              </div>
+                            ))}
+                            <button className="edit-add-option" onClick={addOption}>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                              Add option
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
-                ) : (
-                  <p>Select a question from the left to edit.</p>
-                )}
-              </div>
+                </div>
+              ) : (
+                <div className="edit-canvas-empty">
+                  <div className="edit-canvas-empty-icon">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#cfd9f4" strokeWidth="1.2">
+                      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                      <polyline points="14,2 14,8 20,8"/>
+                      <line x1="12" y1="18" x2="12" y2="12"/>
+                      <line x1="9" y1="15" x2="15" y2="15"/>
+                    </svg>
+                  </div>
+                  <h3>No question selected</h3>
+                  <p>Click a question from the left panel, or add a new one.</p>
+                  <button className="edit-add-btn" style={{marginTop:'1rem'}} onClick={() => setShowAddModal(true)}>+ Add Question</button>
+                </div>
+              )
             )}
 
+            {/* SETTINGS TAB */}
             {currentTab === 'settings' && (
-              <div className="centered-content">
-                <h2>Form Settings</h2>
-                <label>Title:</label>
-                <input value={title} onChange={(e) => setTitle(e.target.value)} />
-                <label>Description:</label>
-                <textarea value={description} onChange={(e) => setDescription(e.target.value)} />
+              <div className="edit-settings-card">
+                <h2 className="edit-section-title">Form Settings</h2>
+
+                <div className="edit-settings-group">
+                  <label className="edit-settings-label">Form Title</label>
+                  <input
+                    className="edit-settings-input"
+                    value={title}
+                    onChange={e => setTitle(e.target.value)}
+                    placeholder="Enter form title…"
+                  />
+                </div>
+
+                <div className="edit-settings-group">
+                  <label className="edit-settings-label">Description</label>
+                  <textarea
+                    className="edit-settings-input edit-settings-textarea"
+                    value={description}
+                    onChange={e => setDescription(e.target.value)}
+                    placeholder="Describe what this form is for…"
+                    rows={4}
+                  />
+                </div>
+
+                <div className="edit-settings-divider"/>
+
+                <h3 className="edit-settings-subtitle">Response Controls</h3>
+
+                <div className="edit-settings-group">
+                  <label className="edit-settings-label">
+                    Close Date
+                    <span className="edit-settings-hint">Stop accepting responses after this date & time</span>
+                  </label>
+                  <input
+                    className="edit-settings-input"
+                    type="datetime-local"
+                    value={closeDate}
+                    onChange={e => setCloseDate(e.target.value)}
+                  />
+                  {closeDate && (
+                    <button className="edit-settings-clear" onClick={() => setCloseDate('')}>
+                      ✕ Remove close date
+                    </button>
+                  )}
+                </div>
+
+                <div className="edit-settings-group">
+                  <label className="edit-settings-label">
+                    Max Total Responses
+                    <span className="edit-settings-hint">0 = unlimited</span>
+                  </label>
+                  <input
+                    className="edit-settings-input edit-settings-input--sm"
+                    type="number"
+                    min="0"
+                    value={maxTotalResponses}
+                    onChange={e => setMaxTotalResponses(e.target.value)}
+                    placeholder="0"
+                  />
+                </div>
+
+                <div className="edit-settings-divider"/>
+
+                <button className="edit-save-btn edit-settings-save-btn" onClick={handleSave} disabled={isSaving}>
+                  {isSaving ? 'Saving…' : 'Save Settings'}
+                </button>
               </div>
             )}
 
+            {/* DELIVER TAB */}
             {currentTab === 'deliver' && (
-              <div className="centered-content">
-                <h2>Deliver</h2>
-                <button onClick={() => handleSave(true)}>Publish</button>
-                <button onClick={handlePreview}>Preview</button>
+              <div className="edit-deliver-wrap">
+
+                {/* Publish card */}
+                <div className="edit-deliver-card">
+                  <div className="edit-deliver-card-header">
+                    <div className="edit-deliver-card-icon" style={{
+                      background: isClosed ? '#f5f0ff' : isPublished ? '#e7f9f0' : '#fff8ec',
+                      color:      isClosed ? '#7c4fff' : isPublished ? '#1a7a4a' : '#a06000'
+                    }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        {isClosed
+                          ? <><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></>
+                          : isPublished
+                            ? <><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22,4 12,14.01 9,11.01"/></>
+                            : <><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></>
+                        }
+                      </svg>
+                    </div>
+                    <div>
+                      <div className="edit-deliver-card-title">
+                        {isClosed ? 'Form is Closed' : isPublished ? 'Form is Live' : 'Form is Unpublished'}
+                      </div>
+                      <div className="edit-deliver-card-sub">
+                        {isClosed
+                          ? closeDate && new Date() > new Date(closeDate)
+                            ? `Closed on ${new Date(closeDate).toLocaleString()}`
+                            : `Response limit of ${maxTotalResponses} reached`
+                          : isPublished
+                            ? 'Your form is accepting responses.'
+                            : 'Publish your form to start collecting responses.'
+                        }
+                      </div>
+                    </div>
+                    <button
+                      className={`edit-publish-btn ${isPublished ? 'edit-publish-btn--unpublish' : 'edit-publish-btn--publish'}`}
+                      onClick={handleTogglePublish}
+                    >
+                      {isPublished ? 'Unpublish' : 'Publish Form'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Share link card */}
+                <div className="edit-deliver-card">
+                  <div className="edit-deliver-card-label">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
+                      <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+                    </svg>
+                    Share Link
+                  </div>
+                  <div className="edit-deliver-link-row">
+                    <span className="edit-deliver-link-text">{shareLink}</span>
+                    <button className={`edit-deliver-copy-btn ${linkCopied ? 'edit-deliver-copy-btn--copied' : ''}`} onClick={copyLink}>
+                      {linkCopied ? '✓ Copied!' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* QR code card */}
+                <div className="edit-deliver-card">
+                  <div className="edit-deliver-card-label">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="3" y="3" width="5" height="5"/><rect x="16" y="3" width="5" height="5"/>
+                      <rect x="3" y="16" width="5" height="5"/><path d="M21 16h-3v3"/><path d="M21 21h-3"/><path d="M16 16v3"/><path d="M3 10h3"/><path d="M10 3v3"/><path d="M10 10h5v3h-5z"/>
+                    </svg>
+                    QR Code
+                  </div>
+                  {!qrImage ? (
+                    <div className="edit-qr-placeholder">
+                      <button className="edit-qr-generate-btn" onClick={handleGenerateQR} disabled={qrLoading}>
+                        {qrLoading
+                          ? <><span className="edit-save-spinner" style={{borderTopColor:'#fff',borderColor:'rgb(255,255,255,0.3)'}}/> Generating…</>
+                          : <><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="5" height="5"/><rect x="16" y="3" width="5" height="5"/><rect x="3" y="16" width="5" height="5"/><path d="M21 16h-3v3"/><path d="M21 21h-3"/><path d="M16 16v3"/></svg> Generate QR Code</>
+                        }
+                      </button>
+                      <p className="edit-qr-hint">Creates a scannable QR code pointing to your form's share link.</p>
+                    </div>
+                  ) : (
+                    <div className="edit-qr-result">
+                      <img src={qrImage} alt="QR Code" className="edit-qr-img" />
+                      <div className="edit-qr-actions">
+                        <button className="edit-deliver-copy-btn" onClick={handleDownloadQR}>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                          Download PNG
+                        </button>
+                        <button className="edit-deliver-copy-btn" onClick={handleGenerateQR} disabled={qrLoading}>
+                          Regenerate
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Embed card */}
+                <div className="edit-deliver-card">
+                  <div className="edit-deliver-card-label">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="16,18 22,12 16,6"/><polyline points="8,6 2,12 8,18"/>
+                    </svg>
+                    Embed Code
+                  </div>
+                  <div className="edit-embed-box">
+                    <code className="edit-embed-code">{embedCode}</code>
+                    <button className={`edit-deliver-copy-btn edit-embed-copy ${embedCopied ? 'edit-deliver-copy-btn--copied' : ''}`} onClick={copyEmbed}>
+                      {embedCopied ? '✓ Copied!' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+
               </div>
             )}
-          </div>
+          </main>
 
-          <div className="editor-right-sidebar">
-            {currentTab === 'edit' && selectedQuestion && (
-              <div>
-                <h3
-                  style={{
-                    fontSize: '1.08rem',
-                    marginBottom: '1rem',
-                    color: '#27469d',
-                    fontWeight: '700' }}
-                >
-                  Question settings
-                </h3>
-                <hr />
-                <label>Required:</label>
-                <input
-                  type="checkbox"
-                  checked={selectedQuestion.required}
-                  onChange={(e) => updateQuestion('required', e.target.checked)}
-                />
+          {/* ── Right sidebar ── */}
+          <aside className={`edit-right ${selectedQuestion && currentTab === 'edit' ? 'edit-right--visible' : ''}`}>
+            {selectedQuestion && currentTab === 'edit' && (
+              <div className="edit-right-inner">
+                <div className="edit-right-header">
+                  <span className="edit-right-title">Question Settings</span>
+                </div>
+
+                <div className="edit-right-section">
+                  <Toggle
+                    label="Required"
+                    checked={selectedQuestion.required}
+                    onChange={v => updateQuestion('required', v)}
+                  />
+                </div>
 
                 {isGrid && (
-                  <>
-                    <label>One selection per row only</label>
-                    <input
-                      type="checkbox"
-                      checked={selectedQuestion.singlePerRow || false}
-                      onChange={(e) => updateQuestion('singlePerRow', e.target.checked)}
-                    />
-
-                    <label>One selection per column only</label>
-                    <input
-                      type="checkbox"
-                      checked={selectedQuestion.singlePerColumn || false}
-                      onChange={(e) => updateQuestion('singlePerColumn', e.target.checked)}
-                    />
-                  </>
+                  <div className="edit-right-section">
+                    <div className="edit-right-section-label">Grid Rules</div>
+                    <Toggle label="One selection per row" checked={selectedQuestion.singlePerRow || false} onChange={v => updateQuestion('singlePerRow', v)} />
+                    <Toggle label="One selection per column" checked={selectedQuestion.singlePerColumn || false} onChange={v => updateQuestion('singlePerColumn', v)} />
+                  </div>
                 )}
 
-                {!isGrid && (
-                  <>
-                    <label>Max Available Responses (0 = unlimited):</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={selectedQuestion.maxResponses || 0}
-                      onChange={(e) => updateQuestion('maxResponses', parseInt(e.target.value))}
-                    />
-                  </>
-                )}
+                <div className="edit-right-section edit-right-section--type">
+                  <div className="edit-right-section-label">Type</div>
+                  <div className="edit-right-type-chip">
+                    {TYPE_META[selectedQuestion.type]?.icon} {TYPE_META[selectedQuestion.type]?.label}
+                  </div>
+                </div>
+
+                <div className="edit-right-section edit-right-section--id">
+                  <div className="edit-right-section-label">Question ID</div>
+                  <code className="edit-right-id">{selectedQuestion.id}</code>
+                </div>
               </div>
             )}
-          </div>
+          </aside>
+
         </div>
       </div>
 
+      {/* ── Add Question Modal ── */}
       {showAddModal && (
-        <div className="modal-overlay">
-          <div className="modal-content" style={{ width: '620px' }}>
-            <h3>Select Question Type</h3>
-            <div className="type-cards">
-              {questionTypes.map((qt) => (
-                <div key={qt.type} className="type-card" onClick={() => addQuestion(qt.type)}>
-                  {qt.label}
-                </div>
+        <div className="edit-modal-overlay" onClick={() => setShowAddModal(false)}>
+          <div className="edit-modal" onClick={e => e.stopPropagation()}>
+            <div className="edit-modal-header">
+              <h3>Choose Question Type</h3>
+              <button className="edit-modal-close" onClick={() => setShowAddModal(false)}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+            <div className="edit-type-grid">
+              {Object.entries(TYPE_META).map(([type, meta]) => (
+                <button key={type} className="edit-type-card" onClick={() => addQuestion(type)}>
+                  <span className="edit-type-card-icon">{meta.icon}</span>
+                  <span className="edit-type-card-label">{meta.label}</span>
+                </button>
               ))}
             </div>
-            <button className='add-qustion-button-cancel' onClick={() => setShowAddModal(false)}>Cancel</button>
           </div>
         </div>
       )}
@@ -651,51 +849,48 @@ function Edit() {
   );
 }
 
+// ─── Question Card (draggable) ────────────────────────────────────────────────
 function QuestionCard({ question, index, isSelected, onSelect, moveQuestion, onDelete }) {
   const [, drop] = useDrop({
     accept: ITEM_TYPE,
     hover: (item) => {
-      if (item.index !== index) {
-        moveQuestion(item.index, index);
-        item.index = index;
-      }
+      if (item.index !== index) { moveQuestion(item.index, index); item.index = index; }
     },
   });
   const [{ isDragging }, drag] = useDrag({
     type: ITEM_TYPE,
     item: { index },
-    collect: (monitor) => ({ isDragging: monitor.isDragging() }),
+    collect: monitor => ({ isDragging: monitor.isDragging() }),
   });
+
+  const meta = TYPE_META[question.type];
+
   return (
     <div
-      ref={(node) => drag(drop(node))}
+      ref={node => drag(drop(node))}
+      className={`edit-qcard ${isSelected ? 'edit-qcard--active' : ''} ${isDragging ? 'edit-qcard--dragging' : ''}`}
       onClick={onSelect}
-      style={{
-        opacity: isDragging ? 0.5 : 1,
-        cursor: 'move',
-        background: isSelected ? '#4f7fff' : '#e3ebfc',
-        color: isSelected ? '#fff' : '#234',
-        padding: '0.75rem',
-        marginBottom: '0.5rem',
-        borderRadius: '8px',
-        border: 'none',
-        position: 'relative',
-      }}
     >
-      {question.label || 'Untitled Question'}
+      <div className="edit-qcard-drag">
+        <svg width="12" height="16" viewBox="0 0 8 14" fill="#9aabcc">
+          <circle cx="2" cy="2" r="1.5"/><circle cx="6" cy="2" r="1.5"/>
+          <circle cx="2" cy="7" r="1.5"/><circle cx="6" cy="7" r="1.5"/>
+          <circle cx="2" cy="12" r="1.5"/><circle cx="6" cy="12" r="1.5"/>
+        </svg>
+      </div>
+      <div className="edit-qcard-body">
+        <div className="edit-qcard-type">{meta?.icon} {meta?.label}</div>
+        <div className="edit-qcard-label">{question.label || 'Untitled question'}</div>
+      </div>
       <button
-        onClick={(e) => { e.stopPropagation(); onDelete(); }}
-        style={{
-          position: 'absolute',
-          right: '8px',
-          top: '8px',
-          background: 'none',
-          border: 'none',
-          color: isSelected ? '#fff' : '#234',
-          fontSize: '1.3rem',
-          cursor: 'pointer' }}
+        className="edit-qcard-delete"
+        onClick={e => { e.stopPropagation(); onDelete(); }}
+        title="Delete"
       >
-        ×
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+          <polyline points="3,6 5,6 21,6"/>
+          <path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a1,1,0,0,1,1-1h6a1,1,0,0,1,1,1v2"/>
+        </svg>
       </button>
     </div>
   );

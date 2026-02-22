@@ -13,6 +13,14 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 app.set('trust proxy', 1);
 
+const { spawn } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+const sharp = require('sharp');
+const multer = require('multer');
+
+const upload = multer({ storage: multer.memoryStorage() });
+
 app.use(cors({
   origin: ['https://form.databooq.com'],
   credentials: true,
@@ -21,6 +29,23 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(cookieParser());
+
+async function getFormStatus(form, prisma) {
+  if (!form.isPublished) return 'draft';
+
+  // Check close date
+  if (form.closeDate && new Date() > new Date(form.closeDate)) {
+    return 'closed';
+  }
+
+  // Check max total responses
+  if (form.maxTotalResponses > 0) {
+    const count = await prisma.submission.count({ where: { formId: form.id } });
+    if (count >= form.maxTotalResponses) return 'closed';
+  }
+
+  return 'published';
+}
 
 // ====================== PROTECTED ROUTES ======================
 
@@ -186,10 +211,10 @@ app.get('/forms', authMiddleware, async (req, res) => {
         description: true,
         schemaJson: true,
         isPublished: true,
+        closeDate: true,
+        maxTotalResponses: true,
         createdAt: true,
-        _count: {
-          select: { submissions: true }
-        },
+        _count: { select: { submissions: true } },
         submissions: {
           orderBy: { submittedAt: 'desc' },
           take: 1,
@@ -198,16 +223,34 @@ app.get('/forms', authMiddleware, async (req, res) => {
       }
     });
 
-    const formatted = forms.map(f => ({
-      id:               f.id,
-      publicId:         f.publicId,
-      title:            f.title,
-      description:      f.description,
-      schemaJson:       f.schemaJson,
-      isPublished:      f.isPublished,
-      createdAt:        f.createdAt,
-      submissionCount:  f._count.submissions,
-      lastSubmittedAt:  f.submissions[0]?.submittedAt ?? null,
+    const formatted = await Promise.all(forms.map(async (f) => {
+      const submissionCount = f._count.submissions;
+
+      let status = 'draft';
+      if (f.isPublished) {
+        if (f.closeDate && new Date() > new Date(f.closeDate)) {
+          status = 'closed';
+        } else if (f.maxTotalResponses > 0 && submissionCount >= f.maxTotalResponses) {
+          status = 'closed';
+        } else {
+          status = 'published';
+        }
+      }
+
+      return {
+        id:               f.id,
+        publicId:         f.publicId,
+        title:            f.title,
+        description:      f.description,
+        schemaJson:       f.schemaJson,
+        isPublished:      f.isPublished,
+        closeDate:        f.closeDate,
+        maxTotalResponses: f.maxTotalResponses,
+        createdAt:        f.createdAt,
+        submissionCount,
+        lastSubmittedAt:  f.submissions[0]?.submittedAt ?? null,
+        status,
+      };
     }));
 
     res.json(formatted);
@@ -249,12 +292,14 @@ app.get('/forms/:publicId', authMiddleware, async (req, res) => {
         description: true,
         schemaJson: true,
         isPublished: true,
-        createdAt: true
+        closeDate: true,
+        maxTotalResponses: true,
+        createdAt: true,
       }
     });
 
     if (!form || form.userId !== req.user.userId) {
-      return res.status(404).json({ error: 'Not found' });
+      return res.status(404).json({ error: 'Form not found' });
     }
     res.json(form);
   } catch (error) {
@@ -263,23 +308,33 @@ app.get('/forms/:publicId', authMiddleware, async (req, res) => {
 });
 
 app.put('/forms/:publicId', authMiddleware, async (req, res) => {
-  const { title, description, isPublished, schemaJson } = req.body;
   try {
-    const existingForm = await prisma.form.findUnique({
+    const { title, description, isPublished, schemaJson, closeDate, maxTotalResponses } = req.body;
+
+    const form = await prisma.form.findUnique({
       where: { publicId: req.params.publicId },
-      select: { userId: true }
+      select: { id: true, userId: true }
     });
 
-    if (!existingForm || existingForm.userId !== req.user.userId) {
-      return res.status(403).json({ error: 'Unauthorized' });
+    if (!form || form.userId !== req.user.userId) {
+      return res.status(404).json({ error: 'Form not found or access denied' });
     }
 
-    const form = await prisma.form.update({
+    const updated = await prisma.form.update({
       where: { publicId: req.params.publicId },
-      data: { title, description, isPublished, schemaJson },
+      data: {
+        ...(title !== undefined        && { title }),
+        ...(description !== undefined  && { description }),
+        ...(isPublished !== undefined  && { isPublished }),
+        ...(schemaJson !== undefined   && { schemaJson }),
+        ...(closeDate !== undefined    && { closeDate: closeDate ? new Date(closeDate) : null }),
+        ...(maxTotalResponses !== undefined && { maxTotalResponses: parseInt(maxTotalResponses) || 0 }),
+      },
     });
-    res.json(form);
+
+    res.json(updated);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -299,6 +354,81 @@ app.delete('/forms/:publicId', authMiddleware, async (req, res) => {
     res.json({ message: 'Deleted' });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// ====================== qr code =======================
+app.post('/forms/:publicId/qr', authMiddleware, async (req, res) => {
+  console.log('QR route hit for:', req.params.publicId);
+  try {
+    const form = await prisma.form.findUnique({
+      where: { publicId: req.params.publicId },
+      select: { id: true, userId: true, title: true }
+    });
+
+    if (!form || form.userId !== req.user.userId) {
+      return res.status(404).json({ error: 'Form not found or access denied' });
+    }
+
+    const shareLink = `https://form.databooq.com/f/${req.params.publicId}`;
+    const ecc = (req.body.ecc || 'M').toUpperCase();
+    const tempRaw = path.join(__dirname, `qr-temp-${Date.now()}.raw`);
+    const qrgenPath = path.join(__dirname, '..', 'qrgen');
+
+    if (!fs.existsSync(qrgenPath)) {
+      return res.status(500).json({ error: 'qrgen.exe not found in server directory' });
+    }
+
+    const qrProcess = spawn(qrgenPath, [shareLink, ecc, tempRaw], { stdio: 'pipe' });
+
+    let dimData = '';
+    qrProcess.stdout.on('data', data => { dimData += data.toString(); });
+    qrProcess.stderr.on('data', () => {});
+
+    qrProcess.on('error', err => {
+      console.error('QR spawn error:', err.message);
+      res.status(500).json({ error: `QR process failed: ${err.message}` });
+    });
+
+    qrProcess.on('close', async (code) => {
+      console.log('QR process exited with code:', code);
+      console.log('DIM output:', dimData.trim());
+      if (code !== 0) {
+        console.error('QR non-zero exit');
+        return res.status(500).json({ error: 'QR generation failed' });
+      }
+
+      const match = dimData.trim().match(/^DIM (\d+)$/);
+      if (!match) {
+        return res.status(500).json({ error: 'Failed to parse QR dimensions' });
+      }
+
+      const size = parseInt(match[1]);
+
+      if (!fs.existsSync(tempRaw)) {
+        return res.status(500).json({ error: 'Raw file not generated' });
+      }
+
+      const rawBuffer = fs.readFileSync(tempRaw);
+      fs.unlinkSync(tempRaw);
+
+      try {
+        const pngBuffer = await sharp(rawBuffer, {
+          raw: { width: size, height: size, channels: 3 }
+        })
+          .png()
+          .toBuffer();
+
+        const base64 = pngBuffer.toString('base64');
+        res.json({ image: `data:image/png;base64,${base64}` });
+      } catch (err) {
+        res.status(500).json({ error: `Image conversion failed: ${err.message}` });
+      }
+    });
+
+  } catch(err) {
+    console.error('Sharp error:', err);
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -360,80 +490,159 @@ app.delete('/forms/:publicId/submissions/:id', authMiddleware, async (req, res) 
 });
 
 // ====================== PUBLIC FORM ROUTES ======================
+app.get('/f/:publicId/grid-counts', async (req, res) => {
+  try {
+    const form = await prisma.form.findUnique({
+      where: { publicId: req.params.publicId },
+      select: {
+        id: true,
+        isPublished: true,
+        schemaJson: true,
+      }
+    });
+
+    if (!form || !form.isPublished) {
+      return res.status(404).json({ error: 'Form not found' });
+    }
+
+    // Find all grid question IDs in this form
+    const gridQuestions = (form.schemaJson.questions || [])
+      .filter(q => q.type === 'grid')
+      .map(q => q.id);
+
+    if (gridQuestions.length === 0) {
+      return res.json({});
+    }
+
+    // Fetch all submissions for this form
+    const submissions = await prisma.submission.findMany({
+      where: { formId: form.id },
+      select: { dataJson: true },
+    });
+
+    // Count cell selections per grid question
+    // Each submission's dataJson is the answers object: { [qId]: string | string[] | ... }
+    const counts = {};
+
+    for (const qId of gridQuestions) {
+      counts[qId] = {};
+    }
+
+    for (const sub of submissions) {
+      const data = sub.dataJson;
+      if (!data || typeof data !== 'object') continue;
+
+      for (const qId of gridQuestions) {
+        const selection = data[qId];
+        if (!Array.isArray(selection)) continue;
+
+        for (const cellKey of selection) {
+          if (typeof cellKey !== 'string') continue;
+          counts[qId][cellKey] = (counts[qId][cellKey] || 0) + 1;
+        }
+      }
+    }
+
+    res.json(counts);
+
+  } catch (error) {
+    console.error('grid-counts error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 app.get('/f/:publicId', async (req, res) => {
   try {
     const form = await prisma.form.findUnique({
       where: { publicId: req.params.publicId },
-      select: { 
+      select: {
+        id: true,
         publicId: true,
         title: true,
         description: true,
         schemaJson: true,
-        isPublished: true 
+        isPublished: true,
+        closeDate: true,
+        maxTotalResponses: true,
       }
     });
 
     if (!form || !form.isPublished) {
-      return res.status(404).json({ error: 'Form not found or not published' });
+      return res.status(404).json({ error: 'Form not found or not published.' });
     }
 
-    res.json(form);
+    let status = 'published';
+    if (form.closeDate && new Date() > new Date(form.closeDate)) {
+      status = 'closed';
+    } else if (form.maxTotalResponses > 0) {
+      const count = await prisma.submission.count({ where: { formId: form.id } });
+      if (count >= form.maxTotalResponses) status = 'closed';
+    }
+
+    res.json({ ...form, status });
+
   } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: error.message });
   }
 });
 
-app.post('/f/:publicId/submit', async (req, res) => {
-  const { publicId } = req.params;
-  const { data } = req.body;
-
-  if (!data || typeof data !== 'object') {
-    return res.status(400).json({ error: 'Invalid submission data' });
-  }
-
+app.post('/f/:publicId', async (req, res) => {
   try {
     const form = await prisma.form.findUnique({
-      where: { publicId },
-      select: { id: true, isPublished: true, schemaJson: true }
+      where: { publicId: req.params.publicId },
+      select: {
+        id: true,
+        isPublished: true,
+        closeDate: true,
+        maxTotalResponses: true,
+        schemaJson: true,
+      }
     });
 
-    if (!form || !form.isPublished) {
-      return res.status(404).json({ error: 'Form not found or not published' });
+    if (!form) {
+      return res.status(404).json({ error: 'Form not found.' });
     }
 
-    // Increment used count for every selected grid cell
-    const schemaJson = { ...form.schemaJson };
-    Object.keys(data).forEach(qId => {
-      const answer = data[qId];
-      if (Array.isArray(answer)) { // grid answer
-        answer.forEach(cellKey => {
-          const q = schemaJson.questions.find(q => q.id === qId);
-          if (q && q.type === 'grid' && q.cells[cellKey]) {
-            q.cells[cellKey].used = (q.cells[cellKey].used || 0) + 1;
-          }
+    if (!form.isPublished) {
+      return res.status(403).json({ error: 'This form is not published.' });
+    }
+
+    // ── Close date check ──
+    if (form.closeDate && new Date() > new Date(form.closeDate)) {
+      return res.status(403).json({
+        error: 'This form is closed and no longer accepting responses.',
+        reason: 'closeDate',
+        closedAt: form.closeDate,
+      });
+    }
+
+    // ── Max total responses check ──
+    if (form.maxTotalResponses > 0) {
+      const count = await prisma.submission.count({ where: { formId: form.id } });
+      if (count >= form.maxTotalResponses) {
+        return res.status(403).json({
+          error: 'This form has reached its maximum number of responses.',
+          reason: 'maxResponses',
         });
       }
-    });
+    }
 
-    // Save updated counts
-    await prisma.form.update({
-      where: { id: form.id },
-      data: { schemaJson }
-    });
+    // ── Save submission ──
+    const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress || null;
 
-    await prisma.submission.create({
+    const submission = await prisma.submission.create({
       data: {
         formId: form.id,
-        dataJson: data,
-        ip: req.ip || req.headers['x-forwarded-for'] || null
+        dataJson: req.body,
+        ip,
       }
     });
 
-    res.json({ success: true, message: 'Thank you!' });
+    res.json({ success: true, submissionId: submission.id });
+
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Failed to save response' });
+    res.status(500).json({ error: error.message });
   }
 });
 

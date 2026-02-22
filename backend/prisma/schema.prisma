@@ -18,7 +18,7 @@ model User {
 
 model Form {
   id           Int      @id @default(autoincrement())
-  publicId     String   @unique @default(cuid())   // ← NEW secure public ID
+  publicId     String   @unique @default(cuid())
   userId       Int
   title        String
   description  String?
@@ -26,6 +26,8 @@ model Form {
   slug         String?  @unique
   isPublished  Boolean  @default(false)
   createdAt    DateTime @default(now())
+  closeDate DateTime? @db.Timestamptz
+  maxTotalResponses Int       @default(0) 
 
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   submissions  Submission[]

@@ -456,6 +456,12 @@
   border: 1.2px solid #ffdea0;
 }
 
+.dash-badge--closed {
+    background: #f5f0ff;
+    color: #7c4fff;
+    border: 1.2px solid #d4b8ff;
+}
+
 .dash-badge-dot {
   width: 6px;
   height: 6px;
@@ -738,6 +744,69 @@
   background: #a0b8ff;
   cursor: not-allowed;
   box-shadow: none;
+}
+
+.dash-modal--narrow {
+    max-width: 400px;
+    width: 90%;
+    box-shadow: rgba(20, 40, 120, 0.18) 0px 20px 60px;
+    text-align: center;
+    background: rgb(255, 255, 255);
+    border-radius: 18px;
+    padding: 2.2rem 2rem 1.8rem;
+    animation: 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) 0s 1 normal none running stats-modal-in;
+}
+
+.dash-modal-footer-del {
+  display: flex;
+  gap: 0.7rem;
+}
+
+.dash-modal-delete {
+    flex: 1;
+    padding: .7rem;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: .92rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: .15s;
+    color: rgb(255, 255, 255);
+    background: rgb(229, 62, 62);
+    border-width: initial;
+    border-style: none;
+    border-color: initial;
+    border-image: initial;
+}
+
+.dash-modal-delete:hover {
+  background: #c0392b;
+}
+
+.dash-modal-danger-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: rgb(44, 58, 117);
+    margin: 0px 0px 0.5rem;
+}
+
+.dash-modal-danger-body {
+    font-size: 0.9rem;
+    color: rgb(119, 139, 171);
+    line-height: 1.6;
+    margin: 0px 0px 1.5rem;
+}
+
+.dash-modal-icon-danger {
+    width: 56px;
+    height: 56px;
+    background: #fff5f5;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.1rem;
+    border: 1.4px solid #fcc;
 }
 
 @media (max-width: 1100px) {

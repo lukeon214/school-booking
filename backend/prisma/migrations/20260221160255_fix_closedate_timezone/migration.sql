@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Form" ALTER COLUMN "closeDate" SET DATA TYPE TIMESTAMPTZ;
