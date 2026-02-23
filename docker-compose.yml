@@ -12,7 +12,7 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U lukedbuser"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -26,9 +26,9 @@ services:
       - "3001:3001"
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      JWT_SECRET: m8gzX6aujuRa8AvNN6fa805SkhXb8drdCILfhL
+      JWT_SECRET: ${JWT_SECRET}
       PORT: 3001
-      RESEND_API_KEY: re_GRWCXSNZ_14ZYiwxog1sRXXQxbvZv1Kzt
+      RESEND_API_KEY: ${RESEND_API_KEY}
       APP_URL: https://form.databooq.com
     depends_on:
       postgres:
@@ -51,8 +51,8 @@ services:
     image: dpage/pgadmin4:latest
     restart: unless-stopped
     environment:
-      PGADMIN_DEFAULT_EMAIL: luke@databooq.com
-      PGADMIN_DEFAULT_PASSWORD: Undatra1!
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
     ports:
       - "8080:80"
     volumes:
