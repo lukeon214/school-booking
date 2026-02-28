@@ -63,6 +63,37 @@ function PublicForm() {
     return () => clearInterval(interval);
   }, [form, closedReason, submitted]);
 
+  // deselect cells if needed
+  useEffect(() => {
+    if (!form || !liveCounts) return;
+    const gridQuestions = form.schemaJson.questions.filter(q => q.type === 'grid');
+    if (gridQuestions.length === 0) return;
+
+    setAnswers(prev => {
+      let changed = false;
+      const next = { ...prev };
+
+      gridQuestions.forEach(q => {
+        const selected = prev[q.id];
+        if (!Array.isArray(selected) || selected.length === 0) return;
+
+        const filtered = selected.filter(cellKey => {
+          const cell = q.cells[cellKey];
+          if (!cell || cell.max === 0) return true; // no limit, keep
+          const liveUsed = liveCounts?.[q.id]?.[cellKey] || 0;
+          return liveUsed < cell.max; // deselect if full
+        });
+
+        if (filtered.length !== selected.length) {
+          next[q.id] = filtered;
+          changed = true;
+        }
+      });
+
+      return changed ? next : prev;
+    });
+  }, [liveCounts]);
+
   // ── Progress ──────────────────────────────────────────────────────────────
   const totalQuestions = form?.schemaJson?.questions?.length || 0;
   const answeredCount = form
@@ -131,6 +162,30 @@ function PublicForm() {
       setValidationErrors(errors);
       // Scroll to first error
       const firstId = Object.keys(errors)[0];
+      document.getElementById(`q-${firstId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    // pre-submit check
+    const gridQuestions = form.schemaJson.questions.filter(q => q.type === 'grid');
+    const capacityErrors = {};
+    gridQuestions.forEach(q => {
+      const selected = answers[q.id] || [];
+      selected.forEach(cellKey => {
+        const cell = q.cells[cellKey];
+        if (!cell || cell.max === 0) return;
+        const liveUsed = liveCounts?.[q.id]?.[cellKey] || 0;
+        if (liveUsed >= cell.max) {
+          capacityErrors[q.id] = `A cell you selected in this question is now full — your selection has been updated. Please review and try again.`;
+        }
+      });
+    });
+
+    if (Object.keys(capacityErrors).length > 0) {
+      // Trigger the auto-deselect immediately by refreshing counts
+      await fetchLiveCounts();
+      setValidationErrors(prev => ({ ...prev, ...capacityErrors }));
+      const firstId = Object.keys(capacityErrors)[0];
       document.getElementById(`q-${firstId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
@@ -631,7 +686,3 @@ function PublicForm() {
 }
 
 export default PublicForm;
-
-
-
-/* 600 lines yeaaa! */

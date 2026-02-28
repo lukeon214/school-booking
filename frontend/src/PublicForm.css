@@ -542,6 +542,10 @@
   cursor: not-allowed;
 }
 
+.pf-matrix-cell--full .pf-cell-text {
+  color: white;
+}
+
 .pf-cell-text {
   font-size: 0.87rem;
   color: #334067;
