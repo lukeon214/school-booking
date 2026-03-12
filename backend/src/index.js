@@ -76,8 +76,8 @@ app.post('/register', async (req, res) => {
     });
 
     const jwt = require('jsonwebtoken');
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    res.cookie('token', token, { httpOnly: true, secure: true });  // secure: true for HTTPS
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'none' });  // secure: true for HTTPS
     res.json({ message: 'Registered', user: { id: user.id, email } });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -97,8 +97,8 @@ app.post('/login', async (req, res) => {
     if (!match) return res.status(400).json({ error: 'Invalid credentials' });
 
     const jwt = require('jsonwebtoken');
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    res.cookie('token', token, { httpOnly: true, secure: false });
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'none' });
     res.json({ message: 'Logged in', user: { id: user.id, email } });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -121,7 +121,7 @@ app.post('/forgot-password', async (req, res) => {
     }
 
     const jwt = require('jsonwebtoken');
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
     await prisma.user.update({
       where: { id: user.id },
