@@ -21,6 +21,13 @@ const multer = require('multer');
 
 const upload = multer({ storage: multer.memoryStorage() });
 
+function anonymizeIp(ip) {
+  if (!ip) return null;
+  if (ip.includes('.')) return ip.split('.').slice(0, 3).concat('0').join('.');
+  if (ip.includes(':')) return ip.split(':').slice(0, 3).join(':') + '::';
+  return null;
+}
+
 app.use(cors({
   origin: ['https://form.databooq.com'],
   credentials: true,
@@ -721,7 +728,8 @@ app.post('/f/:publicId', async (req, res) => {
     }
 
     // ── Max total responses check + submission insert (atomic) ──
-    const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress || null;
+    const rawIp = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress || null;
+    const ip = anonymizeIp(rawIp);
 
     const result = await prisma.$transaction(async (tx) => {
       if (form.maxTotalResponses > 0) {
