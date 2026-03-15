@@ -710,29 +710,32 @@ app.post('/f/:publicId', async (req, res) => {
       });
     }
 
-    // ── Max total responses check ──
-    if (form.maxTotalResponses > 0) {
-      const count = await prisma.submission.count({ where: { formId: form.id } });
-      if (count >= form.maxTotalResponses) {
-        return res.status(403).json({
-          error: 'This form has reached its maximum number of responses.',
-          reason: 'maxResponses',
-        });
-      }
-    }
-
-    // ── Save submission ──
+    // ── Max total responses check + submission insert (atomic) ──
     const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress || null;
 
-    const submission = await prisma.submission.create({
-      data: {
-        formId: form.id,
-        dataJson: req.body,
-        ip,
+    const result = await prisma.$transaction(async (tx) => {
+      if (form.maxTotalResponses > 0) {
+        const count = await tx.submission.count({ where: { formId: form.id } });
+        if (count >= form.maxTotalResponses) {
+          return { blocked: true, reason: 'maxResponses' };
+        }
       }
+
+      const submission = await tx.submission.create({
+        data: { formId: form.id, dataJson: req.body, ip },
+      });
+
+      return { blocked: false, submission };
     });
 
-    res.json({ success: true, submissionId: submission.id });
+    if (result.blocked) {
+      return res.status(403).json({
+        error: 'This form has reached its maximum number of responses.',
+        reason: result.reason,
+      });
+    }
+
+    res.json({ success: true, submissionId: result.submission.id });
 
   } catch (error) {
     console.error(error);
