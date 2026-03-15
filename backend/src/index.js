@@ -555,20 +555,27 @@ app.get('/forms/:publicId/submissions', authMiddleware, async (req, res) => {
       return res.status(404).json({ error: 'Form not found or access denied' });
     }
 
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+    const skip = (page - 1) * limit;
+
+    const totalSubmissions = await prisma.submission.count({ where: { formId: form.id } });
+
     const submissions = await prisma.submission.findMany({
       where: { formId: form.id },
       orderBy: { submittedAt: 'desc' },
-      select: {
-        id: true,
-        dataJson: true,
-        submittedAt: true
-      }
+      skip,
+      take: limit,
+      select: { id: true, dataJson: true, submittedAt: true }
     });
 
     res.json({
       form,
       submissions,
-      totalSubmissions: submissions.length
+      totalSubmissions,
+      page,
+      limit,
+      totalPages: Math.ceil(totalSubmissions / limit),
     });
 
   } catch (error) {

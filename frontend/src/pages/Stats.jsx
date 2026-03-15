@@ -16,27 +16,33 @@ export default function Stats() {
   const [selected, setSelected] = useState(null);
   const [search, setSearch] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalSubmissions, setTotalSubmissions] = useState(0);
 
   useEffect(() => {
-    fetchData();
-  }, [publicId]);
+    fetchData(page);
+  }, [publicId, page]);
 
-  async function fetchData() {
+  async function fetchData(pg = 1) {
+    setLoading(true);
     try {
       const res = await api.get(`${API}/forms/${publicId}/submissions`, {
+        params: { page: pg, limit: 20 },
         withCredentials: true,
       });
       setForm(res.data.form);
       setSubmissions(res.data.submissions);
+      setTotalSubmissions(res.data.totalSubmissions);
+      setTotalPages(res.data.totalPages);
       if (res.data.submissions.length > 0) setSelected(res.data.submissions[0]);
+      else setSelected(null);
     } catch (e) {
       setError('Failed to load responses. You may not have access to this form.');
     } finally {
       setLoading(false);
     }
   }
-
-  const totalSubmissions = submissions.length;
 
   const lastSubmission = submissions.length > 0 ? submissions[0].submittedAt : null;
 
@@ -145,10 +151,8 @@ export default function Stats() {
       await api.delete(`${API}/forms/${publicId}/submissions/${id}`, {
         withCredentials: true,
       });
-      const updated = submissions.filter(s => s.id !== id);
-      setSubmissions(updated);
-      if (selected?.id === id) setSelected(updated[0] || null);
       setDeleteConfirm(null);
+      await fetchData(page);
     } catch (e) {
       alert('Failed to delete response. Please try again.');
     }
@@ -467,6 +471,28 @@ export default function Stats() {
                 })
               )}
             </div>
+
+            {totalPages > 1 && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderTop: '1px solid #e8edf9', gap: '8px' }}>
+                <button
+                  onClick={() => setPage(p => p - 1)}
+                  disabled={page <= 1}
+                  style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', background: page <= 1 ? '#e8edf9' : '#4f7fff', color: page <= 1 ? '#9aabcc' : '#fff', fontFamily: 'inherit', fontWeight: 600, fontSize: '0.85rem', cursor: page <= 1 ? 'not-allowed' : 'pointer' }}
+                >
+                  ← Previous
+                </button>
+                <span style={{ fontSize: '0.82rem', color: '#778bab', fontFamily: 'inherit' }}>
+                  Page {page} of {totalPages}
+                </span>
+                <button
+                  onClick={() => setPage(p => p + 1)}
+                  disabled={page >= totalPages}
+                  style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', background: page >= totalPages ? '#e8edf9' : '#4f7fff', color: page >= totalPages ? '#9aabcc' : '#fff', fontFamily: 'inherit', fontWeight: 600, fontSize: '0.85rem', cursor: page >= totalPages ? 'not-allowed' : 'pointer' }}
+                >
+                  Next →
+                </button>
+              </div>
+            )}
           </div>
 
           {/* ── Right: detail panel ── */}
