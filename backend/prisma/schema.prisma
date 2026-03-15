@@ -31,6 +31,8 @@ model Form {
 
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   submissions  Submission[]
+
+  @@index([userId])
 }
 
 model Submission {
@@ -40,4 +42,6 @@ model Submission {
   submittedAt  DateTime @default(now())
   ip           String?
   form         Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+
+  @@index([formId])
 }
