@@ -1214,7 +1214,6 @@
 }
 
 .matrix-grid th, .matrix-grid td {
-  border: 1.4px solid #cfd9f4;
   position: relative;
   min-width: 90px;
 }
@@ -1235,7 +1234,6 @@
   box-sizing: border-box;
 }
 
-.header-input:focus { outline: none; background: #eaf1ff; }
 .header-input::placeholder { color: #b0bdda; font-weight: 400; }
 
 .remove-header-btn {
@@ -1273,7 +1271,7 @@ td:hover .remove-header-btn { opacity: 1; }
   flex-direction: column;
   height: 100%;
   min-height: 70px;
-  padding: 4px;
+  padding: 1px;
 }
 
 .cell-text-input {

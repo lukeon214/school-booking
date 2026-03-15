@@ -121,7 +121,7 @@ app.post('/forgot-password', async (req, res) => {
     }
 
     const jwt = require('jsonwebtoken');
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
     await prisma.user.update({
       where: { id: user.id },
