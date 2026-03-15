@@ -6,6 +6,7 @@ const { PrismaPg } = require('@prisma/adapter-pg');
 const { Pool } = require('pg');
 const { Resend } = require('resend');
 const authMiddleware = require('./middleware/auth');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -50,6 +51,22 @@ async function getFormStatus(form, prisma) {
   return 'published';
 }
 
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many attempts. Please try again in 15 minutes.' },
+});
+
+const forgotPasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many reset requests. Please try again later.' },
+});
+
 // ====================== PROTECTED ROUTES ======================
 
 app.get('/health', async (_req, res) => {
@@ -61,7 +78,7 @@ app.get('/health', async (_req, res) => {
   }
 });
 
-app.post('/register', async (req, res) => {
+app.post('/register', authLimiter, async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
 
@@ -84,7 +101,7 @@ app.post('/register', async (req, res) => {
   }
 });
 
-app.post('/login', async (req, res) => {
+app.post('/login', authLimiter, async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
 
@@ -110,7 +127,7 @@ app.post('/logout', (req, res) => {
   res.json({ message: 'Logged out' });
 });
 
-app.post('/forgot-password', async (req, res) => {
+app.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: 'Email required' });
 
