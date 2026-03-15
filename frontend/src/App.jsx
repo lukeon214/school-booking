@@ -11,6 +11,7 @@ import Preview from './pages/Preview';
 import PublicForm from './pages/PublicForm';
 import NavBar from './components/NavBar';
 import Stats from './pages/Stats';
+import NotFound from './pages/NotFound';
 
 function AppContent() {
   const location = useLocation();
@@ -38,6 +39,7 @@ function AppContent() {
           <Route path="/preview/:publicId" element={<Preview />} />
           <Route path="/f/:publicId" element={<PublicForm />} />
           <Route path="/stats/:publicId" element={<Stats />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </div>
     </div>
