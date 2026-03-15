@@ -1,21 +1,16 @@
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
-const { PrismaClient } = require('@prisma/client');
-const { PrismaPg } = require('@prisma/adapter-pg');
-const { Pool } = require('pg');
 const { Resend } = require('resend');
 const authMiddleware = require('./middleware/auth');
 const rateLimit = require('express-rate-limit');
 const { validateSchemaJson } = require('./validation');
+const { prisma } = require('./db');
 require('dotenv').config();
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 const app = express();
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
 app.set('trust proxy', 1);
 
 const { spawn } = require('child_process');
