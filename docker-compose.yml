@@ -30,6 +30,7 @@ services:
       PORT: 3001
       RESEND_API_KEY: ${RESEND_API_KEY}
       APP_URL: https://form.databooq.com
+      NODE_ENV: production
     depends_on:
       postgres:
         condition: service_healthy

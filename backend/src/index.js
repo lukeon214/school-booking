@@ -740,6 +740,12 @@ app.post('/f/:publicId', async (req, res) => {
   }
 });
 
+// ====================== ERROR HANDLER ======================
+app.use((err, _req, res, _next) => {
+  console.error(err);
+  res.status(err.status || 500).json({ error: 'Internal server error' });
+});
+
 // ====================== START SERVER ======================
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Backend running on port ${PORT}`));
