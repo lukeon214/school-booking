@@ -7,6 +7,7 @@ const { Pool } = require('pg');
 const { Resend } = require('resend');
 const authMiddleware = require('./middleware/auth');
 const rateLimit = require('express-rate-limit');
+const { validateSchemaJson } = require('./validation');
 require('dotenv').config();
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -404,6 +405,13 @@ app.get('/forms/:publicId', authMiddleware, async (req, res) => {
 app.put('/forms/:publicId', authMiddleware, async (req, res) => {
   try {
     const { title, description, isPublished, schemaJson, closeDate, maxTotalResponses } = req.body;
+
+    if (schemaJson !== undefined) {
+      const check = validateSchemaJson(schemaJson);
+      if (!check.ok) {
+        return res.status(400).json({ error: 'Invalid form schema', details: check.details });
+      }
+    }
 
     const form = await prisma.form.findUnique({
       where: { publicId: req.params.publicId },
