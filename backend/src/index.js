@@ -52,12 +52,12 @@ async function getFormStatus(form, prisma) {
 
 // ====================== PROTECTED ROUTES ======================
 
-app.get('/hello', authMiddleware, async (req, res) => {
+app.get('/health', async (_req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
-    res.json({ message: 'Hello from backend! DB connected.', user: req.user });
-  } catch (error) {
-    res.status(500).json({ message: 'DB error', error: error.message });
+    res.json({ status: 'ok' });
+  } catch {
+    res.status(503).json({ status: 'degraded' });
   }
 });
 
